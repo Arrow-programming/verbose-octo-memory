@@ -4,17 +4,12 @@
     <title>Test</title>
 </head>
 <body>
-    <iframe id="myIframe" width = "1000px" src="https://suroi.io/" onload="refreshLink(this.contentWindow.location.href)"></iframe>
+    <iframe id="myIframe" width = "100%" src="https://suroi.io/" onload="refreshLink(this.contentWindow.location.href)"></iframe>
 <a href="#" target="_blank" id="button">Click here</a>
 </body>
 <script>
 
-var hyperLink = document.getElementById("myIframe").src;
 
-function refreshLink(link) {
-    hyperLink = link;
-    document.getElementById("button").href=hyperLink;
-}
   
  </script>
 </html>
