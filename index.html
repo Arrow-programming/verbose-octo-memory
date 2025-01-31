@@ -11,9 +11,15 @@ X) Add room changing animation
 X) Get that bow to work correctly
 X) Change player physics (player should be faster I think...)
 X) Maybe should think about loading images to the localStorage
-
+X) Music maybe
 X) Redo particles
 X) Ask Henry about perlin noise in the grass
+X) splice particles when the player changes rooms
+X) Player windy death
+X) FIX THOSE PLAYER ANIMATIONS
+X) Particle fade
+X) Room name
+X) Idle cloak animation
 
 Ideas haha:
 IN DARK MODE THE BLOCKS DON'T SHOW!!!
@@ -29,7 +35,9 @@ Log:
 7/10/2024: Redid jumping, resumed work for the summer. Still working on physics
 1/20/2025: This is in development again! 
 
-Henry, Pixel Imperfect, The Dark, CZS, The Duke, HR
+Henry, Pixel Imperfect, The Dark, CZS, The Duke, HR. 
+
+https://www.khanacademy.org/computer-programming/i/6255462600146944
 
 -->
 <html>
@@ -138,10 +146,17 @@ Henry, Pixel Imperfect, The Dark, CZS, The Duke, HR
             </div>
         </div>
     </body>
-    <!--My HTML5 Canvas engine. Combines some elements of HTML Canvas into functions to make it more compactable and easier to work with.-->
+    <script>
+        //fetch HTML Canvas
+        var canvas = document.getElementById("game"); 
+        var ctx = canvas.getContext('2d'); 
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        var width = canvas.width;
+        var height = canvas.height;
+    </script>
     <script type>
-        //Fetch HTML Canvas
-        var canvas = document.getElementById("game"); var ctx = canvas.getContext('2d');canvas.width = window.innerWidth;canvas.height = window.innerHeight;var width = canvas.width;var height = canvas.height;
+        //My HTML5 Canvas engine. Combines some elements of HTML Canvas into functions to make it more compactable and easier to work with. Feel free to use with credit. Note that this isn't in ES6 because you can't have two modules.
         
         //is stroke or fill on?
         var Stroke = true;
@@ -454,9 +469,14 @@ Henry, Pixel Imperfect, The Dark, CZS, The Duke, HR
             return true;
         });
     </script>
-    <!--App-->
     <script type = "module">
 try {
+    
+    //collect and delete animation frames that have already occured 
+    for(let i = window.requestAnimationFrame(function() {}); i > 0; i--) {
+        window.cancelAnimationFrame(i);
+    }
+    
     noStroke();
     ctx.lineCap = "round";
     
@@ -474,7 +494,7 @@ try {
     const blockSize = 10;
     
     //a three dimensional array
-    const WORLDMAP = [
+    const CAVERNS = [
     //NOTE: Levels are somehow a perfect 100 by 100 pixels. This is useful for troubleshooting   
         /** 
         
@@ -485,50 +505,73 @@ try {
     [  
         //0
         [
+            "#########    #######",
+            "#########     ######",
+            "########        ####",
+            "#######          ###",
+            "#######          ###",
+            "######           ###",
+            "#####            ###",
+            "###              ###",
+            "##               ###",
+            "##               ###",
+            "##               ###",
+            "##                ##",
+            "##                ##",
+            "##                 #",
+            "##                 ",
+            "##                  ",
+            "##                  ",
+            "########            ",
+            "###########         ",
             "####################",
-            "#########   P      #",
-            "########           #",
-            "#######            #",
-            "######             #",
-            "#####              #",
-            "#                 P#",
-            "#      P           #",
-            "#      #-----------#",
-            "#--#   #-----#######",
-            "####   ########    #",
-            "###                #",
-            "##                 #",
-            "##                 #",
-            "##                 #",
-            "##P                #",
-            "##                 #",
-            "                    ",
-            "--------#        @  ",
-            "--------######  ####",
         ],  
         //1
         [
+            "########################",
+            "########           #####",
+            "########             ###",
+            "#######                #",
+            "######                 ",
+            "#####                  ",
+            "#####                  ",
+            "###                    ",
+            "###                    ",
+            "##                     ",
+            "#                      ",
+            "#                      ",
+            "#                      ",
+            "#                      ",
+            "                       ",
+            "                       ",
+            "                       ",
+            "                       ",
+            "                       ",
+            "########################",
+        ], 
+        
+        [
+            "                   ",
+            "                    ",
+            "                    ",
+            "                    ",
+            "                    ",
+            "                    ",
+            "                    ",
+            "                    ",
+            "                    ",
+            "                    ",
+            "                    ",
+            "                    ",
+            "                    ",
+            "                    ",
+            "                    ",
+            "                    ",
+            "                    ",
+            "                    ",
+            "                    ",
             "####################",
-            "#                  #",
-            "#                  #",
-            "#                  #",
-            "#                  #",
-            "#                  #",
-            "#                  #",
-            "#                  #",
-            "#                  #",
-            "#                  #",
-            "#                  #",
-            "#                  #",
-            "#                  #",
-            "#                  #",
-            "#                  #",
-            "#                  #",
-            "                   #",
-            "                   #",
-            "                   #",
-            "#######    #########",
-        ],  
+        ],
     ],  
     [    
         //2
@@ -608,9 +651,14 @@ try {
             "####################",
         ],  **/
     ];
+    const NEWMAP = [];
     
     //the world colors
     const col = {
+        //background
+        bg: "rgb(0, 0, 0)",
+        //overlay
+        bgOver: "rgba(255, 255, 255, 0.2)",
         //player
         p:{    
             skinColor: "rgb(255, 225, 148)",  
@@ -623,12 +671,14 @@ try {
         },
         //blocks
         bl:{
-            block: "rgb(122, 122, 122)",
-            grass: "rgb(51, 255, 95)",
+            block: "rgb(65, 65, 100)",
+            block2: "rgb(50, 50, 100)",
+            grass: "rgb(135, 95, 64)",
             poison: "rgb(127, 255, 129)",
             pipe1: "rgb(161, 161, 161)",
             pipe2: "rgb(115, 115, 115)",
-        }
+        },
+        wind: "rgba(255, 255, 255, 0.5)",
     };
     
     //the level input string and starting map
@@ -637,6 +687,7 @@ try {
     //the players current row and column in the World
     let curRow = 0;
     let curColumn = 0;
+    let curMap = CAVERNS;
     
     //size storage for length of levels in pixels
     let lvlSizeX = 0;
@@ -656,8 +707,8 @@ try {
         startPos: {
             row: 0,
             col: 0,
-            x: 100,
-            y: 170,
+            x: 50,
+            y: 150,
         },
         plCoord: {
             x: 0,
@@ -708,7 +759,7 @@ try {
                 if(this.top){
                     this.storePlayerCoords(player);
                     this.topRoom(player);
-                    LEVEL = WORLDMAP[curRow][curColumn];
+                    LEVEL = curMap[curRow][curColumn];
                     mapSetup(LEVEL);
                     player.x = this.plCoord.x;
                     player.y = lvlSizeY - player.h;
@@ -718,7 +769,7 @@ try {
                 if(this.bottom){
                     this.storePlayerCoords(player);
                     this.bottomRoom(player);
-                    LEVEL = WORLDMAP[curRow][curColumn];
+                    LEVEL = curMap[curRow][curColumn];
                     mapSetup(LEVEL); 
                     player.x = this.plCoord.x;
                     player.y = 0;
@@ -728,7 +779,7 @@ try {
                 if(this.left){
                     this.storePlayerCoords(player);
                     this.leftRoom(player);
-                    LEVEL = WORLDMAP[curRow][curColumn];
+                    LEVEL = curMap[curRow][curColumn];
                     mapSetup(LEVEL);
                     player.x = lvlSizeX - player.w;
                     player.y = this.plCoord.y;
@@ -738,7 +789,7 @@ try {
                 if(this.right){
                     this.storePlayerCoords(player);
                     this.rightRoom(player);
-                    LEVEL = WORLDMAP[curRow][curColumn];
+                    LEVEL = curMap[curRow][curColumn];
                     mapSetup(LEVEL);
                     player.x = 5;
                     player.y = this.plCoord.y;
@@ -762,7 +813,7 @@ try {
                 
                 //player goes to restart place
                 if(this.deathTimer <= 0){
-                    LEVEL = WORLDMAP[this.startPos.row][this.startPos.col];
+                    LEVEL = curMap[this.startPos.row][this.startPos.col];
                     player.x = this.startPos.x;
                     player.y = this.startPos.y;
                     curRow = this.startPos.row;
@@ -782,24 +833,15 @@ try {
         {
             display : function() { 
                 noStroke();
-                //fill("black");
-                //ctx.fillStyle = 'rgba(225, 225, 225, 0.5)';
-                //ctx.fillRect(0, 0, width, height);
-                
                 for(var j = 0; j < height; j++){
-                for(var i = 0; i < width; i++){
-                    
-                    var x = i * 3;
-                    var y = j * 3;
-                    
-                    fill('rgba(225, 225, 225, 0.2)');
-                    if(Math.floor(random(0, 1))){
-                        ctx.fillRect(3 * i, 3 * j, 3, 3);
-                    }
-                    ///txt = value;
-                }        
+                    for(var i = 0; i < width; i++){
+                        fill(col.bgOver);
+                        if(Math.floor(random(0, 1))){
+                            ctx.fillRect(j * 2.5, i * 2.5, 2.5, 2.5);
+                        }
+                        ///txt = value;
+                    }        
                 }
-                
             }, 
             w : width,
             h : height,
@@ -880,119 +922,193 @@ try {
         return Shake;
     })();
     
-    //particles
-    const particles = [];
-    function runParticles() {
-        noStroke();
-        for (let i = particles.length - 1; i >= 0; i--) {
-            let p = particles[i];
-            p.timer--;
-            p.x += p.vx;
-            p.y += p.vy;
-            p.vy += p.gravity;
-            
-            p.angle += p.rot;
-            p.opacity = constrain(p.opacity, 0, 255);
-            p.opacity = (p.timer/100) + 0.3;
-            
-            ctx.save();
-                ctx.globalAlpha = p.opacity;
-                fill(p.color);
-                translate(p.x + p.diameter / 2, p.y + p.diameter / 2);
-                rotate(p.angle);
-                if (p.ellipse === true) {
-                    ellipse(-p.diameter / 2, -p.diameter / 2, p.diameter, p.diameter);
-                } 
-                else {
-                    ctx.fillRect(-p.diameter / 2, -p.diameter / 2, p.diameter, p.diameter);
+    //define a Particle
+    const Particle = (function () {
+        const Configure = function (config) {
+            this.position = config.position || Object;
+            this.size = config.size || 10;
+            this.color = config.color;
+            this.velocity = config.velocity || Object;
+            //the lifetime of a particle is directly equal to the amount of particles active, cool right?
+            this.life = config.life || 100;
+            this.acceleration = config.acceleration || Object;
+            this.angle = config.angle || 0;
+            this.rotation = config.rotation || 0;
+            this.opacity = config.opacity;
+            this.clear = config.clear || false;
+        };
+        Configure.prototype = {
+            addVelocity: function(){
+                this.position.x += this.velocity.x;
+                this.position.y += this.velocity.y;
+            },
+            addAcceleration: function(){
+                this.velocity.x += this.acceleration.x;
+                this.velocity.y += this.acceleration.y;
+            },
+            update: function(){
+                this.addVelocity();
+                this.addAcceleration();
+                this.angle += this.rotation;
+                if(this.clear !== false){
+                    
+                    this.opacity = this.life;
                 }
-            ctx.restore();
-            if (p.timer <= 0) {
-                particles.splice(i, 1);
-            }
-        }
-    }
-    
-    const poisonParticles = {
-        run: function(x, y, w, h){
-            if ((Math.random(2)*2-1) > 0.97) {
-                particles.push({
-                    x: x + random(0, w),
-                    y: y + h/2,
-                    diameter: 1.5,
+                else {
+                    this.opacity = 1;
+                }
+            },
+            draw: function () {
+                pushMatrix();
+                    noStroke();
+                    
+                    translate(this.position.x + this.size / 2, this.position.y + this.size / 2);
+                    rotate(this.angle);
+                    ctx.globalAlpha = this.opacity;
+                    fill(this.color, this.life * 3);
+                    rect(-this.size / 2, -this.size / 2, this.size, this.size);
+                popMatrix();
+            },
+            die: function(){
+                return this.life < 0;
+            },
+            run: function(){
+                this.life--;
+                this.draw();
+                this.update();
+            },
+        };
+        return Configure;
+    })();
+    const ParticleSystem = (function () {
+        const Configure = function (config) {
+            this.add = config.add || function() {};
+            //each system has its own array of particles
+            this.particles = [];
+        };
+        Configure.prototype = {
+            addParticle: function(){
+                this.add();
+            },
+            run: function(){
+                //scrap object if particles not being added
+                if(!this.add){
+                    this.addParticle();
+                }
+                for (let i = this.particles.length-1; i >= 0; i--) {
+                    this.particles[i].run();
+                    if (this.particles[i].die()) {
+                        this.particles.splice(i, 1);
+                    }
+                }
+                
+            },
+        };
+        return Configure;
+    })();
+    const poisonParticles = new ParticleSystem({
+        add: function(x, y, w, h){
+            if((Math.random(2)*2-1) > 0.97){
+                this.particles.push(new Particle({
+                    position: {
+                        x: random(x, x + w),
+                        y: y
+                    },
+                    velocity: {
+                        x: random(-0.5, 0.5),
+                        y: random(-1, -3)
+                    },
+                    size: 1.5,
                     color: col.bl.poison,
-                    vx: random(-0.5, 0.5),
-                    vy: random(-1, -3),
-                    gravity: 0.07,
                     opacity: 1,
-                    angle: 61,
-                    rot: random(4, 7) * -random(1, 2),
-                    timer: 60,
-                });
-            }
-        },
-    };
-    const poisonSplash = {
-        run: function(x, y, w, h){
-            if((Math.random(2)*2-1) > 0.50){
-                particles.push({
-                    x: player.x,
-                    y: y + h/2,
-                    diameter: random(0.5, 2),
-                    color: col.bl.poison,
-                    vx: random(-3.5, 3.5),
-                    vy: random(-1, -3),
-                    gravity: 0.07,
-                    opacity: 1,
-                    angle: 61,
-                    rot: random(4, 7) * -random(1, 2),
-                    timer: 200,
-                });
-            } 
-        },
-    };
-    const poisonFlow = {
-        run: function(x, y, w, h){
-            if(frameCount){
-                particles.push({
-                    x: x + w - 6,
-                    y: y + h/2,
-                    diameter: random(0.5, 5),
-                    color: col.bl.poison,
-                    vx: random(0.1, 0.2),
-                    vy: random(-0.8, -0.8),
-                    gravity: 0.08,
-                    opacity: 1,
+                    life: 30,
+                    acceleration: {
+                        x: 0,
+                        y: 0.08,
+                    },
                     angle: 60,
-                    rot: random(4, 7) * -random(1, 2),
-                    timer: 40,
-                    rect: false,
-                });
-            } 
+                    rotation: random(4, 7) * -random(1, 2),
+                    clear: true,
+                }));
+            }
         },
-    };
-    
-    
+    }),
+          poisonStream = new ParticleSystem({
+            add: function(x, y, xVel, lifeTime){
+                this.particles.push(new Particle({
+                    position: {
+                        x: x,
+                        y: y
+                    },
+                    velocity: {
+                        x: xVel,
+                        y: random(-0.5, -1)
+                    },
+                    size: random(1, 4),
+                    color: col.bl.poison,
+                    opacity: 1,
+                    life: lifeTime,
+                    acceleration: {
+                        x: 0,
+                        y: 0.08,
+                    },
+                    angle: 60,
+                    rotation: random(4, 7) * -random(1, 2),
+                    clear: false,
+                    
+                }));
+            },
+          }),
+          wind = new ParticleSystem({
+            add: function(x, y){
+                if((Math.random(2)*2-1) > 0.30){
+                    this.particles.push(new Particle({
+                        position: {
+                            x: width + 5,
+                            y: random(0, height)
+                        },
+                        velocity: {
+                            x: -0.5,
+                            y: random(-0.5, -1)
+                        },
+                        size: random(1, 5),
+                        color: col.wind,
+                        opacity: 1,
+                        life: 150,
+                        acceleration: {
+                            x: -0.05,
+                            y: 0.0,
+                        },
+                        angle: 60,
+                        rotation: random(4, 7) * -random(1, 2),
+                        clear: false,
+                        
+                    }));
+                }
+            },
+          });
+            
     //collisions
     const Physics = (function(){
+        const correction = 1;
         const collideBox = {
             top: function(a, b){
-                if ((a.x + a.w / 2 - 3) > b.x - a.w / 2 && (a.x) < (b.x + b.w - 3) && (a.y + a.h) > b.y && (a.y < b.y - 3)) {
+                if ((a.x + a.w / 2 - correction) > b.x - a.w / 2 && (a.x) < (b.x + b.w - 3) && (a.y + a.h) > b.y && (a.y < b.y - 3)) {
                     return true;
                 }
             },
             bottom: function(a, b){
-                if ((a.x + a.w / 2 - 3) > b.x - a.w / 2 && (a.x) < (b.x + b.w - 3) && (a.y + a.h) > b.y && (a.y < b.y + b.h)) {
+                if ((a.x + a.w / 2 - correction) > b.x - a.w / 2 && (a.x) < (b.x + b.w - 3) && (a.y + a.h) > b.y && (a.y < b.y + b.h)) {
                     return true;
                 }
             },
             right: function(a, b){
-                if ((a.x) > b.x - a.w / 2 && (a.x) < (b.x + b.w) && (a.y + a.h - 3) > b.y && (a.y < b.y + b.h)) {
+                if ((a.x) > b.x - a.w / 2 && (a.x) < (b.x + b.w) && (a.y + a.h - correction) > b.y && (a.y < b.y + b.h)) {
                     return true;
                 }
             },
             left: function(a, b){
-                if ((a.x + a.w / 2) > b.x - a.w / 2 && (a.x) < (b.x) && (a.y + a.h) > b.y && (a.y < b.y + b.h)) {
+                if ((a.x + a.w / 2) > b.x - a.w / 2 && (a.x) < (b.x) && (a.y + a.h - correction) > b.y && (a.y < b.y + b.h)) {
                     return true;
                 }  
             },
@@ -1027,7 +1143,7 @@ try {
     //the player
     const player = {
         //positioning and vector movement
-        scale: 0.20,
+        scale: 0.25,
         xOff: 6,
         yOff: 52,
         x: 0, y: 0,
@@ -1059,12 +1175,25 @@ try {
             [-26, 8, 16, -17],
         ],
         idle: [3, 10, -10, 5],
-        air: [-20, 90, -30, 60],
+        air: [-20, 90, -30, 90],
         pos: [0, 0, 0, 0],
         idleArms: [4, -70, -9, 15],
         posArms: [-10, -39, 21, 0],
         action: "idle",
         dir: 1,
+        animSpeed: 0.125,
+        emphasis: 1.4,
+        
+        hasBow: true,
+        
+        physics: {
+            acc: 0.03,
+            friction: 1.1,
+            jumpPow: 2.88,
+            gravity: 0.08,
+            speed: 0.7,
+        },
+        
         shoot: false,
         top: false,
         followMouse: false,
@@ -1079,6 +1208,9 @@ try {
                 translate(0, 20  * this.scale);
                 rotate(k2);
                 rect(-5 * this.scale, 0, 10  * this.scale, 20 * this.scale, 3 * this.scale);
+                fill(col.p.cloakRear);
+                rect(-5 * this.scale, 1, 10 * this.scale, 20 * this.scale, 3 * this.scale);
+                rect(-5 * this.scale, 4, 14 * this.scale, 7 * this.scale, 3 * this.scale);
             popMatrix();
         },
         leg2: function(t1, k1, t2, k2, x, y){
@@ -1092,6 +1224,9 @@ try {
                 translate(0, 20 * this.scale);
                 rotate(k1);
                 rect(-5 * this.scale, 0, 10 * this.scale, 20 * this.scale, 3 * this.scale);
+                fill(col.p.cloak);
+                rect(-5 * this.scale, 1, 10 * this.scale, 20 * this.scale, 3 * this.scale);
+                rect(-5 * this.scale, 4, 14 * this.scale, 7 * this.scale, 3 * this.scale);
             popMatrix();
         },
         bow: function(x, y, pow, ANGLE){
@@ -1115,27 +1250,40 @@ try {
             //front arm
             pushMatrix();
                 translate(x, y);
-                //rotate(t1);
+                
+                if(!this.hasBow){
+                    rotate(t1);
+                }
                 
                 fill(col.p.front);
                 rect(-5 * this.scale, 0, 10 * this.scale, 25 * this.scale, 5 * this.scale);
                 
+                
                 translate(0, 5);
+                if(!this.hasBow){
+                    rotate(k1);
+                }
+                
+                //bow
+                //{
                 var xPos = (player.x + player.xOff) * cam.z - cam.x + cam.align.x;
                 var yPos = (player.y + player.yOff) * cam.z - cam.y + cam.align.y - 138;
 
                 var angle = atan2(-this.dir * (mouse.x - xPos), mouse.y - yPos);
                 
+                if(this.hasBow){
+                    if(this.shoot){
+                        rotate(angle);
+                    }
+                    else {
+                        rotate(k1);
+                    }
+                    
+                    //-0.35 max
+                    this.bow(0, 17, -0.20, 145);
                 
-                if(this.shoot){
-                    rotate(angle);
                 }
-                else {
-                    rotate(k1);
-                }
-                
-                //-0.35 max
-                this.bow(0, 17, -0.20, 145);
+                //}
                 
                 noStroke();
                 fill(col.p.skinColor);
@@ -1171,7 +1319,7 @@ try {
             pushMatrix();
                 translate(x, y);
                 fill(col.p.skinColor);
-                ellipse(0, 1, 22 * this.scale, 22 * this.scale);
+                ellipse(0, 1, 20 * this.scale, 20 * this.scale);
             popMatrix();
         },
         cloakFront: function(x, y){
@@ -1189,7 +1337,7 @@ try {
                 //hood
                 ctx.beginPath();
     	        ctx.moveTo(1, -3);
-    	        bezierVertex(-6.7, 2, -5, 2, 1, 6);
+    	        bezierVertex(-6.7, 2.0, -5.0, 2.0, 1, 6);
                 ctx.fill();
                 
             popMatrix();
@@ -1223,18 +1371,18 @@ try {
                     if(this.action !== "air"){
                         let s = this.walk[~~this.index%this.walk.length];
                         for(var i = 0; i < this.pos.length; i += 1){
-                            this.pos[i] = lerp(this.pos[i], s[i]*1.4, 0.125);
+                            this.pos[i] = lerp(this.pos[i], s[i]*this.emphasis, this.animSpeed);
                         }
                         let zed = this.walkArms[~~this.index%this.walkArms.length];
                         for(let i = 0; i < this.posArms.length; i += 1){
-                            this.posArms[i] = lerp(this.posArms[i], zed[i]*1.4, 0.125);
+                            this.posArms[i] = lerp(this.posArms[i], zed[i]*this.emphasis, this.animSpeed);
                         }
                     }
                     break;
                 }
                 case "air": {
                     for(let i = 0; i < this.pos.length; i += 1){
-                        this.pos[i] = lerp(this.pos[i], this.air[i], 0.125);
+                        this.pos[i] = lerp(this.pos[i], this.air[i], this.animSpeed);
                     }
                     break;
                 }
@@ -1246,13 +1394,12 @@ try {
             //idle
             if(this.action !== ("walk" || "air")){
                 for(let i = 0; i < this.pos.length; i += 1){
-                    this.posArms[i] = lerp(this.posArms[i], this.idleArms[i], 0.125);
+                    this.posArms[i] = lerp(this.posArms[i], this.idleArms[i], this.animSpeed);
                 }
                 for(let i = 0; i < this.pos.length; i += 1){
-                    this.pos[i] = lerp(this.pos[i], this.idle[i], 0.125);
+                    this.pos[i] = lerp(this.pos[i], this.idle[i], this.animSpeed);
                 }
             }
-            
             //collision box
             //fill("rgba(255, 255, 255, 0.3)");
             //ctx.fillRect(this.x, this.y, this.w, this.h);
@@ -1280,16 +1427,19 @@ try {
                 //front arm and bow
                 this.arm1(this.posArms[0], this.posArms[1], this.posArms[2], this.posArms[3], 0, -49);
                 this.head(0, -52);
+                
                 this.cloakFront(0, -52);
             popMatrix();
             this.index += 0.1;
         },  
         move: function() {
-            let acc = 0.03;
-            let friction = 1.1;
-            let jumpPow = 2.88;
-            let gravity = 0.08;
-            let speed = 0.7;
+            let acc = this.physics.acc;
+            let friction = this.physics.friction;
+            let jumpPow = this.physics.jumpPow;
+            let gravity = this.physics.gravity;
+            let speed = this.physics.speed;
+            
+            
             
             if(mouse.down){
                 this.shoot = true;
@@ -1355,10 +1505,23 @@ try {
         },
     };
     
-    //only collide with a close block
+    //render if in range
     function range(n){
-        if(dist(player.x, player.y, n.x, n.y) < blockSize * 4){
+        if(dist(player.x, player.y, n.x, n.y) < blockSize * Math.sqrt(5)){
             return true;
+        }
+    }
+    
+    function roomName(){
+        if(curColumn === 0 && curRow === 0 && curMap === CAVERNS){
+            ctx.save();
+                ctx.textAlign = 'center';
+                ctx.fillStyle = "white";
+                ctx.font = 'bold 30px Lato'
+                ctx.fillText("The", 160, 310);
+                ctx.font = 'bold 50px Lato'
+                ctx.fillText("Desolate Caverns", 300, 350);
+            ctx.restore();
         }
     }
     
@@ -1381,51 +1544,50 @@ try {
         draw() {
             switch(this.type){
                 case "block": {
-                    if(Physics.collideBox.touch(player, this)){
-                        fill("rgb(255, 255, 255)");
-                    }
-                    else if(range(this)){
-                        fill("rgb(58, 71, 110)");
-                    }
-                    else {
-                        fill(col.bl.block);
-                    }
                     
-                    rect(this.x, this.y, this.w, this.h);
+                    ctx.save();
+                        fill(col.bl.block2);
+                        //ctx.globalAlpha = 0.8;
+                        if(!this.bottom || !this.top || !this.left || !this.right){
+                            //ctx.globalAlpha = 1;
+                            fill(col.bl.block);
+                        }
+                        
+                        rect(this.x, this.y, this.w, this.h);
+                    ctx.restore();
                     
-                    var tall = -2 * this.seed;
                     
                     //grass
                     if(!this.top){
                         fill(col.bl.grass);
                         triangle(
                             this.x, this.y, 
-                            this.x + 2, this.y + tall, 
+                            this.x + 2, this.y - 2 * this.seed, 
                             this.x + 4, this.y - 0
                         );
                         pushMatrix();
                         translate(2, 0);
                         triangle(
                             this.x, this.y, 
-                            this.x + 2, this.y + tall, 
+                            this.x + 2, this.y + -2 * this.seed, 
                             this.x + 4, this.y - 0
                         );
                         translate(4, 0);
                         triangle(
                             this.x, this.y, 
-                            this.x + 2, this.y + tall, 
+                            this.x + 2, this.y + -2, 
                             this.x + 4, this.y - 0
                         );
                         translate(-1, 0);
                         triangle(
                             this.x, this.y, 
-                            this.x + 2, this.y + tall, 
+                            this.x + 2, this.y + -2, 
                             this.x + 4, this.y - 0
                         );
                         translate(-2, 0);
                         triangle(
                             this.x, this.y, 
-                            this.x + 2, this.y + tall, 
+                            this.x + 2, this.y + -2 * this.seed, 
                             this.x + 4, this.y - 0
                         );
                         popMatrix();
@@ -1444,13 +1606,14 @@ try {
                             );
                         }
                     }
+                    
                     //collisions
-                    if(range(this)){
-                        Physics.collideBox.all(player, this);
-                        if(Physics.collideBox.top(player, this)){
-                            player.top = true;
-                        }
+                    Physics.collideBox.all(player, this);
+                    //Physics.collideBox.all(player, this);
+                    if(Physics.collideBox.top(player, this)){
+                        player.top = true;
                     }
+                    
                     break;
                 }
                 case "poison": {
@@ -1470,24 +1633,23 @@ try {
                         
                         //finish
                         triangle(this.x + 4, this.y, this.x + 10, this.y + (Math.sin(frameCount/speed) - zed), this.x + 10, this.y - 0);
-                        //particles
-                        poisonParticles.run(this.x, this.y, this.w, this.h);
+                        
+                        poisonParticles.add(this.x, this.y, this.w, this.h);
                     }
                     
                     ctx.fillRect(this.x, this.y, this.w, this.h);
                     //collisions
-                    if(range(this)){
+                    //if(range(this)){
                         if(Physics.collideBox.touch(player, this)){ 
-                            poisonSplash.run(this.x, this.y, this.w, this.h);
+                            //poisonSplash.run(this.x, this.y, this.w, this.h);
                             player.die = true;
                             
                             
                         }
-                    }
+                    //}
                     break;    
                 }
                 case "pipe": {
-                    
                     //a new collision object
                     let that = {
                         x: 0,
@@ -1499,7 +1661,7 @@ try {
                     //left pipe
                     if(this.left){
                         //particle stream
-                        poisonFlow.run(this.x, this.y, this.w, this.h);
+                        poisonStream.add(this.x + this.w - 4, this.y + this.h - 4, 0.5, 30);
                         
                         fill(col.bl.pipe2);
                         ctx.fillRect(this.x, this.y, this.w, this.h);
@@ -1515,7 +1677,9 @@ try {
                         ctx.fillRect(that.x, that.y, that.w, that.h);
                         
                     }
+                    //right pipe
                     if(this.right){
+                        poisonStream.add(this.x, this.y + this.h - 4, -0.5, 30);
                         fill(col.bl.pipe2);
                         ctx.fillRect(this.x, this.y, this.w, this.h);
                         fill(col.bl.pipe1);
@@ -1529,11 +1693,8 @@ try {
                         ctx.fillRect(that.x, that.y, that.w, that.h);
                     }
                     
-                    if(range(this)){
-                        Physics.collideBox.all(player, this);
-                        Physics.collideBox.all(player, that);
-                        
-                    }
+                    Physics.collideBox.all(player, this);
+                    Physics.collideBox.all(player, that);
                 }
             }
         }
@@ -1605,12 +1766,10 @@ try {
         //fetch the width and height of each level in pixels
         lvlSizeX = longestX*blockSize;
         lvlSizeY = MAP.length*blockSize;
-        
-        
     });
     
     //starting position and map
-    mapSetup(WORLDMAP[functions.startPos.row][functions.startPos.col]);
+    mapSetup(curMap[functions.startPos.row][functions.startPos.col]);
     player.x = functions.startPos.x;
     player.y = functions.startPos.y;
     
@@ -1642,13 +1801,93 @@ try {
         },
     };
     
+    //ctx.getImageData(xPos, yPos, width, height);
+    //
+    
+    var Explosian = (function () {
+        var explode = function (x, y, w, h, parSize) {
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.parSize = parSize;
+            
+            this.img();
+            this.ImgArr = [];
+                this.array = this.getImgs();
+        };
+        explode.prototype = {
+            lrp: function(to, from, cushion){
+                return (to - from) / cushion;
+            },
+            runParticles: function(par){
+                for(var i = 0; i < par.length; i++){
+                    pushMatrix();
+                        ctx.translate(par[i].x, par[i].y);
+                        rotate(par[i].r);
+                        ctx.translate(-this.parSize/2, 0);
+                        //image(par[i].i, 0, 0);
+                        ctx.putImageData(par[i].i, par[i].x, par[i].y, 0, 0, this.parSize, this.parSize);
+                    popMatrix();
+                    var acc = 1.1;
+                    acc++;
+                    par[i].r += par[i].s/30;
+                    par[i].y += par[i].vy * acc;
+                    par[i].y += par[i].vy * acc;
+                    par[i].x += par[i].vx * acc;
+                }
+            },
+            getImgs: function(){
+                for(var i = this.x; i < this.x + this.w; i += this.parSize){
+                    for(var j = this.y; j < this.y + this.h; j += this.parSize){
+                        this.ImgArr.push({
+                            //fetch a chunks of the image
+                            i: ctx.getImageData(i, j, this.parSize, this.parSize),
+                            //velocity is random
+                            vx: random(-2, 2), 
+                            vy: random(-2, 2), 
+                            //rotation
+                            r: 0, 
+                            rs: random(-2, 2), 
+                            //particle speed
+                            s: random(20, 40), 
+                            //starting place
+                            x: i, 
+                            y: j, 
+                        });
+                    }
+                }
+                return this.ImgArr;
+            },
+            img: function(){
+                //transparent background
+                background("rgba(255, 255, 255)");
+                //the image input
+                fill("orange");
+                rect(this.x, this.y, this.w, this.h);
+            },
+            run: function(){
+                this.runParticles(this.array);
+            },
+        };
+        return explode;
+    })();
+
+    //x, y, w, h, image, particle size
+    var e = new Explosian(200, 200, 100, 100, 20);
+    
+    
+    
     //animation loop
     const render = () => {
         //initilize frame counter
         frameCount++;
         
         //blank canvas
-        background("rgb(0, 0, 0)");
+        background(col.bg);
+        
+        wind.add();
+        wind.run();
         
         //start image cache
         cache.load();
@@ -1670,8 +1909,9 @@ try {
                 player.update();
             }
             
-            //particles
-            runParticles();
+            
+            poisonParticles.run();
+            poisonStream.run();
             
             //running this before the blocks allows me to capture the player only when doing a death animation
             functions.execute(player);
@@ -1682,8 +1922,12 @@ try {
             }
         ctx.restore();
         
+        roomName();
+        
         //overlay
         img(cache.img[0], 0, 0);
+        
+        e.run(); 
         
         //reset events
         mouse.released = false;
@@ -1698,8 +1942,10 @@ try {
         if(keys[84]){
             background("rgb(255, 255, 255)");
         }
+        window.requestAnimationFrame(render);
     };
-    window.setInterval(render, 1000 / 60);
+    render();
+    
     
     /**
     window.addEventListener("resize", function() {
@@ -1719,6 +1965,66 @@ try {
 	const button = document.getElementById('fullscreen');
 	// add the event listener
 	button.addEventListener('click', openInFullscreen);
+    **/
+    /**
+    window.openInFullscreen = function(){
+        var w = window.open();
+        
+        let pageCode = "";
+        pageCode += "<html><head><script>";
+        pageCode += "var KAInfiniteLoopProtect = function(){};";
+        pageCode += "</scr" + "ipt>";
+        pageCode += document.getElementsByTagName("head")[0].innerHTML;
+        pageCode += "</head><body>";
+        pageCode += document.getElementsByTagName("body")[0].innerHTML;
+        pageCode += "</body></html>";
+        
+        
+        w.document.open();
+        w.document.write(pageCode);
+        w.document.close();
+    };
+            
+    document.body.addEventListener("click", function(){
+        if(width <= 4000){
+            window.openInFullscreen();
+        }
+    
+        else{
+            let fullScreen = window.innerWidth === screen.width && window.innerHeight === screen.height;
+    
+            if(fullScreen){
+                if(document.exitFullscreen){
+                    document.exitFullscreen();
+                }
+    
+                // safari
+                else if(document.webkitExitFullscreen){
+                    document.webkitExitFullscreen();
+                }
+    
+                // MS edge
+                else if(document.msExitFullscreen){
+                    document.msExitFullscreen();
+                }
+            }
+            else{
+                if(document.body.requestFullscreen){
+                    document.body.requestFullscreen();
+                }
+    
+                // safari
+                else if(document.body.webkitRequestFullscreen){
+                    document.body.webkitRequestFullscreen();
+                }
+    
+                // MS edge
+                else if(document.body.msRequestFullscreen){
+                    document.body.msRequestFullscreen();
+                }
+            }
+        }
+    });
     **/
 }
 catch(e){
