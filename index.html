@@ -523,7 +523,7 @@ try {
             "##                  ",
             "##                  ",
             "########            ",
-            "###########         ",
+            "###########---#     ",
             "####################",
         ],  
         //1
@@ -692,12 +692,90 @@ try {
     //size storage for length of levels in pixels
     let lvlSizeX = 0;
     let lvlSizeY = 0;
+    
+    //explode an image.
+    var Explosian = (function () {
+        var explode = function (image, x, y, w, h, parSize) {
+            this.imageInput = image;
+            
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+            this.parSize = parSize;
+            
+            this.img();
+            this.ImgArr = [];
+            this.array = this.getImgs();
+        };
+        explode.prototype = {
+            runParticles: function(par){
+                for(var i = 0; i < par.length; i++){
+                    pushMatrix();
+                        ctx.translate(par[i].x, par[i].y);
+                        rotate(par[i].r);
+                        ctx.translate(-this.parSize/2, 0);
+                        //image(par[i].i, 0, 0);
+                        ctx.putImageData(par[i].i, par[i].x, par[i].y, 0, 0, this.parSize, this.parSize);
+                    popMatrix();
+                    var acc = 1.1;
+                    acc++;
+                    par[i].r += par[i].s/30;
+                    par[i].y += par[i].vy * acc;
+                    par[i].y += par[i].vy * acc;
+                    par[i].x += par[i].vx * acc;
+                    par[i].timer--;
+                    if(par[i].timer < 0){
+                        par.splice(i, 1);
+                    }
+                    
+                }
+            },
+            getImgs: function(){
+                for(var i = this.x; i < this.x + this.w; i += this.parSize){
+                    for(var j = this.y; j < this.y + this.h; j += this.parSize){
+                        this.ImgArr.push({
+                            //fetch a chunks of the image
+                            i: ctx.getImageData(i, j, this.parSize, this.parSize),
+                            //velocity is random
+                            vx: random(-0.1, 0.1), 
+                            vy: random(-0.1, 0.1), 
+                            //rotation
+                            r: 0, 
+                            rs: random(-2, 2), 
+                            //particle speed
+                            s: random(20, 40), 
+                            //starting place
+                            x: i, 
+                            y: j, 
+                            timer: 100,
+                        });
+                    }
+                }
+                return this.ImgArr;
+            },
+            img: function(){
+                //transparent background
+                background("rgba(255, 255, 255, 0)");
+                //the image input
+                fill("orange");
+                rect(this.x, this.y, this.w, this.h);
+                
+                ctx.putImageData(this.imageInput, this.x, this.y, 0, 0, this.w, this.h);
+            },
+            run: function(){
+                this.runParticles(this.array);
+            },
+        };
+        return explode;
+    })();
      
     //critical functions, room changing, death animation
     const functions = {
         active: false,
         started: false,
         plUpdate: true,
+        plDisplay: true,
         
         left: false,
         right: false,
@@ -715,8 +793,12 @@ try {
             y: 0,
         },
         
-        deathTimer: 10,
-        deathTimerStart: 10,
+        deathTimer: 100,
+        deathTimerStart: 100,
+        
+        playerDeathAnimation: { run: function(){}},
+        imageFetched: true,
+        
         checkColl: function(player){
             if(player.x < (0 - player.w/2)){
                 this.left = true;
@@ -808,8 +890,12 @@ try {
                 var xPos = (player.x + player.xOff) * cam.z - cam.x + cam.align.x - 30;
                 var yPos = (player.y + player.yOff) * cam.z - cam.y + cam.align.y - 180;
                 var img = ctx.getImageData(xPos, yPos, 100, 100);
-                //ctx.putImageData(img, 200, 200, 0, 0, 100, 100);
-                
+                if(this.imageFetched){
+                    this.playerDeathAnimation = new Explosian(img, xPos, yPos, 100, 100, 3);
+                    this.plDisplay = false;
+                    this.imageFetched = false;
+                }
+                this.playerDeathAnimation.run();
                 
                 //player goes to restart place
                 if(this.deathTimer <= 0){
@@ -821,6 +907,8 @@ try {
                     mapSetup(LEVEL);
                     this.deathTimer = this.deathTimerStart;
                     this.plUpdate = true;
+                    this.plDisplay = true;
+                    this.imageFetched = true;
                     //always make sure to call the flag last
                     player.die = false;
                 }
@@ -1801,83 +1889,6 @@ try {
         },
     };
     
-    //ctx.getImageData(xPos, yPos, width, height);
-    //
-    
-    var Explosian = (function () {
-        var explode = function (x, y, w, h, parSize) {
-            this.x = x;
-            this.y = y;
-            this.w = w;
-            this.h = h;
-            this.parSize = parSize;
-            
-            this.img();
-            this.ImgArr = [];
-                this.array = this.getImgs();
-        };
-        explode.prototype = {
-            lrp: function(to, from, cushion){
-                return (to - from) / cushion;
-            },
-            runParticles: function(par){
-                for(var i = 0; i < par.length; i++){
-                    pushMatrix();
-                        ctx.translate(par[i].x, par[i].y);
-                        rotate(par[i].r);
-                        ctx.translate(-this.parSize/2, 0);
-                        //image(par[i].i, 0, 0);
-                        ctx.putImageData(par[i].i, par[i].x, par[i].y, 0, 0, this.parSize, this.parSize);
-                    popMatrix();
-                    var acc = 1.1;
-                    acc++;
-                    par[i].r += par[i].s/30;
-                    par[i].y += par[i].vy * acc;
-                    par[i].y += par[i].vy * acc;
-                    par[i].x += par[i].vx * acc;
-                }
-            },
-            getImgs: function(){
-                for(var i = this.x; i < this.x + this.w; i += this.parSize){
-                    for(var j = this.y; j < this.y + this.h; j += this.parSize){
-                        this.ImgArr.push({
-                            //fetch a chunks of the image
-                            i: ctx.getImageData(i, j, this.parSize, this.parSize),
-                            //velocity is random
-                            vx: random(-2, 2), 
-                            vy: random(-2, 2), 
-                            //rotation
-                            r: 0, 
-                            rs: random(-2, 2), 
-                            //particle speed
-                            s: random(20, 40), 
-                            //starting place
-                            x: i, 
-                            y: j, 
-                        });
-                    }
-                }
-                return this.ImgArr;
-            },
-            img: function(){
-                //transparent background
-                background("rgba(255, 255, 255)");
-                //the image input
-                fill("orange");
-                rect(this.x, this.y, this.w, this.h);
-            },
-            run: function(){
-                this.runParticles(this.array);
-            },
-        };
-        return explode;
-    })();
-
-    //x, y, w, h, image, particle size
-    var e = new Explosian(200, 200, 100, 100, 20);
-    
-    
-    
     //animation loop
     const render = () => {
         //initilize frame counter
@@ -1904,18 +1915,19 @@ try {
             }
             
             //player
-            player.display();
+            if(functions.plDisplay){
+                player.display();
+            }
             if(functions.plUpdate){
                 player.update();
             }
-            
             
             poisonParticles.run();
             poisonStream.run();
             
             //running this before the blocks allows me to capture the player only when doing a death animation
             functions.execute(player);
-            
+            functions.playerDeathAnimation.run();
             //blocks
             for (let i = 0; i < blocks.length; i++) {
                 blocks[i].draw();
@@ -1927,7 +1939,6 @@ try {
         //overlay
         img(cache.img[0], 0, 0);
         
-        e.run(); 
         
         //reset events
         mouse.released = false;
