@@ -1,44 +1,40 @@
 <!DOCTYPE html>
 <!--
-
-My current work in progress
-Title: NightArcher
+//THIS IS A SPIN OFF!!
+//of Arrows progect 
+ current work in progress
+Title: 
 
 X) Finish coding the player animations
-X) Fix collision problem ugh
-X) Collisions only detected when the player is close to them
+X) fix player animation faults
 X) Add room changing animation
 X) Get that bow to work correctly
 X) Change player physics (player should be faster I think...)
-X) Maybe should think about loading images to the localStorage
-X) Music maybe
-X) Redo particles
-X) Ask Henry about perlin noise in the grass
-X) splice particles when the player changes rooms
-X) Player windy death
-X) FIX THOSE PLAYER ANIMATIONS
-X) Particle fade
-X) Room name
+X) load images to the localStorage
+X) Ask Henry about "perlin noise in the grass"
+X) Ask Henry about "collisions only detected when the player is close to them"
 X) Idle cloak animation
+X) User inputs can be added based on what the user likes
+X) Move particles to a seperate canvas
+X) Move image cache to a seperate canvas
+X) Give the death animation particles opacity by using async or by moving them to a seperate canvas
+X) Poison splash
+X) Give the pipe another collision box
 
-Ideas haha:
+Ideas
 IN DARK MODE THE BLOCKS DON'T SHOW!!!
 Cloak mode (player throws cloak over shoulders)
 
-Water: https://www.khanacademy.org/computer-programming/fluid-simulation/5982208821477376
 
 https://stackoverflow.com/questions/3768565/drawing-an-svg-file-on-a-html5-canvas
 
-Log: 
-4/16/2024: Finished up player walking animation and image cache
-5/10/2024: Fixed image opacity thanks to Henry. Fixed air walking. Not so sure about jumping abilities. Should the player be able to walk in the air? Started work on angled jump (angular velocity seems to work best)
-7/10/2024: Redid jumping, resumed work for the summer. Still working on physics
-1/20/2025: This is in development again! 
 
-Henry, Pixel Imperfect, The Dark, CZS, The Duke, HR. 
+People to thank:
+Henry, Pixel Imperfect, The Dark, CZS, Walk Worthy. Polar
 
-https://www.khanacademy.org/computer-programming/i/6255462600146944
-
+Playtesters:
+HR
+Duke
 -->
 <html>
     <head>
@@ -49,7 +45,7 @@ https://www.khanacademy.org/computer-programming/i/6255462600146944
         <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Exo">
         <link rel='stylesheet' href='https://fonts.googleapis.com/css2?family=Lato&family=Material+Icons&display=swap'>
         <!--The page title-->
-        <title>New Webpage</title>
+        <title>working on it </title>
         <!--CSS Styling-->
         <style>
             * {
@@ -489,13 +485,12 @@ try {
     //frameCounter for animations
     let frameCount = 0;
     
-    //block size and storage. 10x10 seems reasonable...
-    let blocks = [];
+    //map setup
     const blockSize = 10;
     
     //a three dimensional array
     const CAVERNS = [
-    //NOTE: Levels are somehow a perfect 100 by 100 pixels. This is useful for troubleshooting   
+    //NOTE: Levels are a perfect 200 by 200 pixels. This is useful for troubleshooting   
         /** 
         
         0, 1
@@ -521,7 +516,7 @@ try {
             "##                 #",
             "##                 ",
             "##                  ",
-            "##                  ",
+            "#### C              ",
             "########            ",
             "###########---#     ",
             "####################",
@@ -547,7 +542,7 @@ try {
             "                       ",
             "                       ",
             "                       ",
-            "########################",
+            "#########    ###########",
         ], 
         
         [
@@ -605,25 +600,25 @@ try {
         ],
         //3
         [
-            "#######     #################",
+            "#########    ################",
             "#                           #",
             "#                           #",
             "#        ###                #",
             "#       #                   #",
+            "#P                          #",
             "#                           #",
-            "#                           #",
-            "#---#                       #",
+            "#-----#                     #",
             "########                    #",
-            "#  #######                  #",
+            "#  #######          #-------#",
             "#      ####       ###########",
             "#                 #####     #",
             "#                ##         #",
             "#              ####         #",
             "#         #######           #",
-            "#          # #              #",
-            "        ######              #",
-            "          #  #              #",
-            "     #########--------------#",
+            "#        #####             P#",
+            "#       ######              #",
+            "#     ########              #",
+            "#    #########--------------#",
             "#############################",
         ],  
     ],
@@ -671,64 +666,51 @@ try {
         },
         //blocks
         bl:{
-            block: "rgb(65, 65, 100)",
+            block: "rgb(63, 63, 115)",
             block2: "rgb(50, 50, 100)",
             grass: "rgb(135, 95, 64)",
-            poison: "rgb(127, 255, 129)",
+            poison: "rgb(255, 255, 255)",
             pipe1: "rgb(161, 161, 161)",
             pipe2: "rgb(115, 115, 115)",
         },
         wind: "rgba(255, 255, 255, 0.5)",
     };
     
-    //the level input string and starting map
-    let LEVEL = "";
     
-    //the players current row and column in the World
-    let curRow = 0;
-    let curColumn = 0;
-    let curMap = CAVERNS;
-    
-    //size storage for length of levels in pixels
-    let lvlSizeX = 0;
-    let lvlSizeY = 0;
-    
-    //explode an image.
+    //fetch a certain part of the screen and move it around in chunks
     var Explosian = (function () {
-        var explode = function (image, x, y, w, h, parSize) {
-            this.imageInput = image;
-            
+        var explode = function (x, y, w, h, parSize) {
             this.x = x;
             this.y = y;
             this.w = w;
             this.h = h;
             this.parSize = parSize;
             
-            this.img();
             this.ImgArr = [];
             this.array = this.getImgs();
         };
         explode.prototype = {
             runParticles: function(par){
                 for(var i = 0; i < par.length; i++){
-                    pushMatrix();
+                    ctx.save();
                         ctx.translate(par[i].x, par[i].y);
-                        rotate(par[i].r);
                         ctx.translate(-this.parSize/2, 0);
+                        //put image particles cannot be transparent, going to have to fix this later by adding a seperate canvas
+                        //ctx.globalAlpha = par[i].opacity;
+                        //ctx.globalAlpha = 0.1;
                         //image(par[i].i, 0, 0);
                         ctx.putImageData(par[i].i, par[i].x, par[i].y, 0, 0, this.parSize, this.parSize);
-                    popMatrix();
-                    var acc = 1.1;
-                    acc++;
-                    par[i].r += par[i].s/30;
-                    par[i].y += par[i].vy * acc;
-                    par[i].y += par[i].vy * acc;
-                    par[i].x += par[i].vx * acc;
+                    ctx.restore();
+                    par[i].opacity -= par[i].timer/2000;
+                    //err = par[i].opacity;
+                    par[i].y += par[i].vy;
+                    par[i].x += par[i].vx;
+                    //acceleration 
+                    par[i].vx -= 0.08; 
                     par[i].timer--;
                     if(par[i].timer < 0){
                         par.splice(i, 1);
                     }
-                    
                 }
             },
             getImgs: function(){
@@ -738,30 +720,21 @@ try {
                             //fetch a chunks of the image
                             i: ctx.getImageData(i, j, this.parSize, this.parSize),
                             //velocity is random
-                            vx: random(-0.1, 0.1), 
-                            vy: random(-0.1, 0.1), 
+                            vx: -random(0.005, 0.1), 
+                            vy: -random(1.005, 1.0), 
                             //rotation
-                            r: 0, 
+                            r: 60, 
                             rs: random(-2, 2), 
                             //particle speed
-                            s: random(20, 40), 
+                            s: random(20, 25), 
                             //starting place
                             x: i, 
-                            y: j, 
-                            timer: 100,
+                            y: j,   timer: random(20, 100),
+                            opacity: 1,
                         });
                     }
                 }
                 return this.ImgArr;
-            },
-            img: function(){
-                //transparent background
-                background("rgba(255, 255, 255, 0)");
-                //the image input
-                fill("orange");
-                rect(this.x, this.y, this.w, this.h);
-                
-                ctx.putImageData(this.imageInput, this.x, this.y, 0, 0, this.w, this.h);
             },
             run: function(){
                 this.runParticles(this.array);
@@ -769,248 +742,8 @@ try {
         };
         return explode;
     })();
-     
-    //critical functions, room changing, death animation
-    const functions = {
-        active: false,
-        started: false,
-        plUpdate: true,
-        plDisplay: true,
-        
-        left: false,
-        right: false,
-        top: false,
-        bottom: false,
-        
-        startPos: {
-            row: 0,
-            col: 0,
-            x: 50,
-            y: 150,
-        },
-        plCoord: {
-            x: 0,
-            y: 0,
-        },
-        
-        deathTimer: 100,
-        deathTimerStart: 100,
-        
-        playerDeathAnimation: { run: function(){}},
-        imageFetched: true,
-        
-        checkColl: function(player){
-            if(player.x < (0 - player.w/2)){
-                this.left = true;
-                this.started = true;
-            }
-            if(player.x > (lvlSizeX - player.w/2)){
-                this.right = true;
-                this.started = true;
-            }
-            if(player.y < (0 - player.h/2)){
-                this.top = true;
-                this.started = true;
-            }
-            if(player.y > (lvlSizeY + player.h/2)){
-                this.bottom = true;
-                this.started = true;
-            }
-            return this.checkColl;
-        },
-        leftRoom: function(player){
-            return curColumn -= 1;
-        },
-        rightRoom: function(player){
-            return curColumn += 1;
-        },
-        topRoom: function(player){
-            return curRow -= 1;
-        },
-        bottomRoom: function(player){
-            return curRow += 1;
-        },
-        storePlayerCoords: function(player){
-            this.plCoord.x = player.x;
-            this.plCoord.y = player.y;
-        },
-        execute: function(player){
-            this.checkColl(player);
-            //this.started is a closure. It only allows the wrapped commands to be executed once. This is important when dealing with increments and decrements
-            if(this.started){
-                if(this.top){
-                    this.storePlayerCoords(player);
-                    this.topRoom(player);
-                    LEVEL = curMap[curRow][curColumn];
-                    mapSetup(LEVEL);
-                    player.x = this.plCoord.x;
-                    player.y = lvlSizeY - player.h;
-                    this.top = false;
-                    this.started = false;
-                }
-                if(this.bottom){
-                    this.storePlayerCoords(player);
-                    this.bottomRoom(player);
-                    LEVEL = curMap[curRow][curColumn];
-                    mapSetup(LEVEL); 
-                    player.x = this.plCoord.x;
-                    player.y = 0;
-                    this.bottom = false;
-                    this.started = false;
-                }
-                if(this.left){
-                    this.storePlayerCoords(player);
-                    this.leftRoom(player);
-                    LEVEL = curMap[curRow][curColumn];
-                    mapSetup(LEVEL);
-                    player.x = lvlSizeX - player.w;
-                    player.y = this.plCoord.y;
-                    this.left = false;
-                    this.started = false;
-                }
-                if(this.right){
-                    this.storePlayerCoords(player);
-                    this.rightRoom(player);
-                    LEVEL = curMap[curRow][curColumn];
-                    mapSetup(LEVEL);
-                    player.x = 5;
-                    player.y = this.plCoord.y;
-                    this.right = false;
-                    this.started = false;
-                }
-            }
-            
-            //err = "row: " + curRow + "\n col: " + curColumn;
-            
-            //on death
-            if(player.die){
-                this.deathTimer--;
-                //err = this.deathTimer;
-                this.plUpdate = false;
-                var xPos = (player.x + player.xOff) * cam.z - cam.x + cam.align.x - 30;
-                var yPos = (player.y + player.yOff) * cam.z - cam.y + cam.align.y - 180;
-                var img = ctx.getImageData(xPos, yPos, 100, 100);
-                if(this.imageFetched){
-                    this.playerDeathAnimation = new Explosian(img, xPos, yPos, 100, 100, 3);
-                    this.plDisplay = false;
-                    this.imageFetched = false;
-                }
-                this.playerDeathAnimation.run();
-                
-                //player goes to restart place
-                if(this.deathTimer <= 0){
-                    LEVEL = curMap[this.startPos.row][this.startPos.col];
-                    player.x = this.startPos.x;
-                    player.y = this.startPos.y;
-                    curRow = this.startPos.row;
-                    curColumn = this.startPos.col;
-                    mapSetup(LEVEL);
-                    this.deathTimer = this.deathTimerStart;
-                    this.plUpdate = true;
-                    this.plDisplay = true;
-                    this.imageFetched = true;
-                    //always make sure to call the flag last
-                    player.die = false;
-                }
-            }
-        },
-    };
     
-    //the image cache. Loads images into the canvas. 
-    const imagesToLoad = [
-        {
-            display : function() { 
-                noStroke();
-                for(var j = 0; j < height; j++){
-                    for(var i = 0; i < width; i++){
-                        fill(col.bgOver);
-                        if(Math.floor(random(0, 1))){
-                            ctx.fillRect(j * 2.5, i * 2.5, 2.5, 2.5);
-                        }
-                        ///txt = value;
-                    }        
-                }
-            }, 
-            w : width,
-            h : height,
-        }, 
-        {
-            display : function() {
-                
-            }, 
-            w : 600,
-            h : 600
-        }
-    ];
-    var Cache = (function() {
-        Cache = function(that) {
-            this.loaded = false;
-            this.imgIndex = 0;
-            this.curImg = {};
-            this.img = [];
-        };
-        Cache.prototype = {
-            load: function() {
-                if (this.imgIndex < imagesToLoad.length) {
-                    (async() => {
-                        this.curImg = imagesToLoad[this.imgIndex];
-                        this.curImg.display();
-                        let imageData = ctx.getImageData(
-                            0, 0, this.curImg.w, this.curImg.h
-                        );
-                        
-                        for (let i = 3; i < imageData.data.length; i += 4) {
-                            imageData.data[i] = 0.2 * 255;                               }
-                        const bmp = await createImageBitmap(imageData);
-                        this.img.push(bmp);
-                        this.imgIndex++;
-                    })();
-                } 
-                else { 
-                    this.loaded = true;
-                }
-            }
-        };
-        return Cache;
-    })(); 
-    const cache = new Cache();
-    function img(that, x, y){
-        if(cache.loaded){
-            return ctx.drawImage(that, x, y);
-        }
-    }
-    
-    //camera shake
-    const shakes = []; 
-    let shake = {
-        x: 0,
-        y: 0,
-    };
-    const Shake = (function () {
-        let Shake = function (n) {
-            //shake power
-            this.n = n;
-        };
-        Shake.prototype = {
-            active: function(increment){
-                //apply shake
-                shake.x = (Math.random()*2-1)*this.n;
-                shake.y = (Math.random()*2-1)*this.n;
-                
-                //fade the shake
-                this.n -= 0.5;
-                
-                if (this.n < 0) {
-                    shake.x = 0;
-                    shake.y = 0;
-                    shakes.splice(increment, 1);
-                }
-            }
-        };
-        return Shake;
-    })();
-    
-    //define a Particle
+    //define a Particle, pretty proud of this setup 
     const Particle = (function () {
         const Configure = function (config) {
             this.position = config.position || Object;
@@ -1022,7 +755,7 @@ try {
             this.acceleration = config.acceleration || Object;
             this.angle = config.angle || 0;
             this.rotation = config.rotation || 0;
-            this.opacity = config.opacity;
+            this.opacity = config.opacity || 1;
             this.clear = config.clear || false;
         };
         Configure.prototype = {
@@ -1039,21 +772,20 @@ try {
                 this.addAcceleration();
                 this.angle += this.rotation;
                 if(this.clear !== false){
-                    
-                    this.opacity = this.life;
+                    this.opacity -= this.life/1000;
                 }
                 else {
                     this.opacity = 1;
                 }
+                this.life--;
             },
             draw: function () {
                 pushMatrix();
                     noStroke();
-                    
-                    translate(this.position.x + this.size / 2, this.position.y + this.size / 2);
+                    ctx.translate(this.position.x + this.size / 2, this.position.y + this.size / 2);
                     rotate(this.angle);
+                    ctx.fillStyle = this.color;
                     ctx.globalAlpha = this.opacity;
-                    fill(this.color, this.life * 3);
                     rect(-this.size / 2, -this.size / 2, this.size, this.size);
                 popMatrix();
             },
@@ -1061,7 +793,6 @@ try {
                 return this.life < 0;
             },
             run: function(){
-                this.life--;
                 this.draw();
                 this.update();
             },
@@ -1109,7 +840,7 @@ try {
                     size: 1.5,
                     color: col.bl.poison,
                     opacity: 1,
-                    life: 30,
+                    life: 40,
                     acceleration: {
                         x: 0,
                         y: 0.08,
@@ -1175,8 +906,285 @@ try {
                 }
             },
           });
+    
+    let LEVEL = "";
+    //the players current row and column in the World
+    let curRow = 0;
+    let curColumn = 0;  
+    let curMap = CAVERNS;
+    
+    //size storage for length of levels in pixels
+    let lvlSizeX = 0;
+    let lvlSizeY = 0;
+    //critical functions, room changing, death animation
+    const functions = {
+        active: false,
+        started: false,
+        plUpdate: true,
+        plDisplay: true,
+        
+        left: false,
+        right: false,
+        top: false,
+        bottom: false,
+        
+        startPos: {
+            row: 0,
+            col: 0,
+            x: 50,
+            y: 150,
+        },
+        plCoord: {
+            x: 0,
+            y: 0,
+        },
+        
+        deathTimer: 50,
+        deathTimerStart: 50,
+        
+        playerDeathAnimation: {run: function(){}},
+        imageFetched: true,
+        storedPlayerImage: null,
+        
+        checkColl: function(player){
+            if(player.x < (0 - player.w/2)){
+                this.left = true;
+                this.started = true;
+            }
+            if(player.x > (lvlSizeX - player.w/2)){
+                this.right = true;
+                this.started = true;
+            }
+            if(player.y < (0 - player.h/2)){
+                this.top = true;
+                this.started = true;
+            }
+            if(player.y > (lvlSizeY + player.h/2)){
+                this.bottom = true;
+                this.started = true;
+            }
+            return this.checkColl;
+        },
+        leftRoom: function(player){
+            return curColumn -= 1;
+        },
+        rightRoom: function(player){
+            return curColumn += 1;
+        },
+        topRoom: function(player){
+            return curRow -= 1;
+        },
+        bottomRoom: function(player){
+            return curRow += 1;
+        },
+        storePlayerCoords: function(player){
+            this.plCoord.x = player.x;
+            this.plCoord.y = player.y;
+        },
+        resetParticles: function(){
+            poisonParticles.particles = [];
+            poisonStream.particles = [];
+        },
+        resetRoom: function(){
+            LEVEL = curMap[curRow][curColumn];
+            mapSetup(LEVEL);
+            this.resetParticles();
+        },
+        execute: function(player){
+            this.checkColl(player);
+            //this.started is a closure. It only allows the wrapped commands to be executed once. This is important when dealing with increments and decrements
+            if(this.started){
+                if(this.top){
+                    this.storePlayerCoords(player);
+                    this.topRoom(player);
+                    this.resetRoom();
+                    player.x = this.plCoord.x;
+                    player.y = lvlSizeY - player.h;
+                    this.top = false;
+                    this.started = false;
+                }
+                if(this.bottom){
+                    this.storePlayerCoords(player);
+                    this.bottomRoom(player);
+                    this.resetRoom();
+                    player.x = this.plCoord.x;
+                    player.y = 0;
+                    this.bottom = false;
+                    this.started = false;
+                }
+                if(this.left){
+                    this.storePlayerCoords(player);
+                    this.leftRoom(player);
+                    this.resetRoom();
+                    player.x = lvlSizeX - player.w;
+                    player.y = this.plCoord.y;
+                    this.left = false;
+                    this.started = false;
+                }
+                if(this.right){
+                    this.storePlayerCoords(player);
+                    this.rightRoom(player);
+                    this.resetRoom();
+                    player.x = 5;
+                    player.y = this.plCoord.y;
+                    this.right = false;
+                    this.started = false;
+                }
+            }
             
-    //collisions
+            //Note to future idiot self: 
+            /**
+            Thanks to CZS for real world positioning!
+            
+            Canvas transformations kind of take effect in reverse, which has always been a little confusing to me, and I think it's what's confusing you as well. In cam.run(), you're calling scale() first, then translate(), but the effect is that the stuff on the canvas is being translated first and then scaled. This means that, in order to calculate the final position on the canvas, we need to add the argument of translate() first, and then multiply by the argument of scale():
+        
+            xOnCanvas = (xInRoom + translatedX) * scaleFactor;
+
+            This should help with the mouse problem as well. The inverse of the equation above is:
+
+            xInRoom = xOnCanvas / scaleFactor - translatedX;
+            **/
+            
+            //the players real world position 
+            let plX = (player.x + player.xOff - cam.x + cam.align.x) * cam.z - 30;
+            let plY = (player.y + player.yOff - cam.y + cam.align.y) * cam.z - 180;
+            
+            //on death
+            if(player.die){
+                this.deathTimer--;
+                this.plUpdate = false;
+                if(this.imageFetched){
+                    //this fetches the canvas and divides it up into sections (x, y, width, height, parSize)
+                    this.playerDeathAnimation = new Explosian(plX, plY, 100, 100, 5);
+                    //player is not displayed 
+                    this.plDisplay = false;
+                    //call flag last
+                    this.imageFetched = false;
+                }
+                
+                //player goes to restart place
+                if(this.deathTimer <= 0){
+                    LEVEL = curMap[this.startPos.row][this.startPos.col];
+                    this.resetParticles();
+                    player.v.x = 0;
+                    player.v.y = 0;
+                    player.x = this.startPos.x;
+                    player.y = this.startPos.y;
+                    curRow = this.startPos.row;
+                    curColumn = this.startPos.col;
+                    mapSetup(LEVEL);
+                    this.deathTimer = this.deathTimerStart;
+                    this.plUpdate = true;
+                    this.plDisplay = true;
+                    this.imageFetched = true;
+                    //always make sure to call the flag last
+                    player.die = false;
+                }
+            }
+            
+            //run the death animation in real time
+            this.playerDeathAnimation.run();
+            
+            //this.playerDeathAnimation.array = [];
+        },
+    };
+    
+    //the image cache. Loads images into the canvas. Going to save them to localStorage in the future
+    const imagesToLoad = [
+        {
+            display : function() { 
+                noStroke();
+                for(var j = 0; j < height; j++){
+                    for(var i = 0; i < width; i++){
+                        fill(col.bgOver);
+                        if(Math.floor(random(0, 1))){
+                            ctx.fillRect(j * 2.5, i * 2.5, 2.5, 2.5);
+                        }
+                        ///txt = value;
+                    }        
+                }
+            }, 
+            w : width,
+            h : height,
+        }, 
+        {
+            display : function() {
+                
+            }, 
+            w : 600,
+            h : 600
+        }
+    ];
+    var Cache = (function() {
+        Cache = function(that) {
+            this.loaded = false;
+            this.imgIndex = 0;
+            this.curImg = {};
+            this.img = [];
+        };
+        Cache.prototype = {
+            load: function() {
+                if (this.imgIndex < imagesToLoad.length) {
+                    (async() => {
+                        this.curImg = imagesToLoad[this.imgIndex];
+                        this.curImg.display();
+                        let imageData = ctx.getImageData(
+                            0, 0, this.curImg.w, this.curImg.h
+                        );
+                        
+                        for (let i = 3; i < imageData.data.length; i += 4) {
+                            imageData.data[i] = 0.2 * 255;                            }
+                        //await is the loading keyword available in ES6, very handy
+                        const bmp = await createImageBitmap(imageData);
+                        this.img.push(bmp);
+                        this.imgIndex++;
+                    })();
+                }  
+                else { 
+                    this.loaded = true;
+                }
+            }
+        };
+        return Cache;
+    })(); 
+    const cache = new Cache();
+    function img(that, x, y){
+        if(cache.loaded){
+            return ctx.drawImage(that, x, y);
+        }
+    }
+    
+    //camera shake
+    const shakes = []; 
+    let shake = {
+        x: 0,
+        y: 0,
+    };
+    const Shake = (function () {
+        let Shake = function (n) {
+            //shake power
+            this.n = n;
+        };
+        Shake.prototype = {
+            active: function(increment){
+                //apply shake
+                shake.x = (Math.random()*2-1)*this.n;
+                shake.y = (Math.random()*2-1)*this.n;
+                
+                //fade the shake
+                this.n -= 0.5;
+                
+                if (this.n < 0) {
+                    shake.x = 0;
+                    shake.y = 0;
+                    shakes.splice(increment, 1);
+                }
+            }
+        };
+        return Shake;
+    })();
+            
+    //collisions, SCRAPPED
     const Physics = (function(){
         const correction = 1;
         const collideBox = {
@@ -1228,21 +1236,24 @@ try {
         };
     })();
     
-    //the player
+    //rectangle edge check between two entities 
+    function edgeCheck(a, b) {
+        return (
+          a.x + a.w > b.x &&
+          a.x < b.x + b.w &&
+          a.y + a.h > b.y &&
+          a.y < b.y + b.h
+        );
+    }
+    
+    //the player. Since the player is only drawn once it should be an object not a constructor. 
     const player = {
-        //positioning and vector movement
+        //scaling and positioning 
         scale: 0.25,
         xOff: 6,
         yOff: 52,
         x: 0, y: 0,
         w: 10, h: 20,
-        v: {
-            x: 0,
-            y: 0,
-        },
-        jump: false,
-        
-        die: false,
         
         //graphical animations
         index: 0,
@@ -1271,20 +1282,37 @@ try {
         dir: 1,
         animSpeed: 0.125,
         emphasis: 1.4,
-        
         hasBow: true,
         
-        physics: {
-            acc: 0.03,
-            friction: 1.1,
-            jumpPow: 2.88,
-            gravity: 0.08,
-            speed: 0.7,
-        },
-        
+        die: false,
         shoot: false,
         top: false,
         followMouse: false,
+        
+        //collisions
+        collide: {
+            left: false,
+            right: false,
+            top: false,
+            bottom: false
+        },
+        inputs: {
+            left: null,
+            right: null,
+            up: null,
+        },
+        v: {
+            x: 0,
+            y: 0,
+        },
+        jump: false,
+        
+        acceleration: 0.1,
+        friction: 1.1,
+        jumpPow: 2,
+        gravity: 0.08,
+        speed: 0.7,
+        
         leg1: function(t1, k1, t2, k2, x, y){
             noStroke();
             //rear leg
@@ -1318,6 +1346,15 @@ try {
             popMatrix();
         },
         bow: function(x, y, pow, ANGLE){
+            /**
+            if(mouse.down){
+                this.shoot = true;
+            }
+            else {
+                this.shoot = false;
+            }
+            
+            **/
             pushMatrix();
                 translate(x, y - pow + -13);
                 // var x = (mouseX - x - this.x);
@@ -1354,18 +1391,19 @@ try {
                 
                 //bow
                 //{
-                var xPos = (player.x + player.xOff) * cam.z - cam.x + cam.align.x;
-                var yPos = (player.y + player.yOff) * cam.z - cam.y + cam.align.y - 138;
+                //inaccurate, so why keep it? The answer: becuse I am an idiot
+                //var xPos = (player.x + player.xOff) * cam.z - cam.x + cam.align.x;
+                //var yPos = (player.y + player.yOff) * cam.z - cam.y + cam.align.y - 138;
 
-                var angle = atan2(-this.dir * (mouse.x - xPos), mouse.y - yPos);
+                //var angle = atan2(-this.dir * (mouse.x - xPos), mouse.y - yPos);
                 
                 if(this.hasBow){
-                    if(this.shoot){
-                        rotate(angle);
-                    }
-                    else {
+                    //if(this.shoot){
+                        //rotate(angle);
+                    //}
+                    //else {
                         rotate(k1);
-                    }
+                    //}
                     
                     //-0.35 max
                     this.bow(0, 17, -0.20, 145);
@@ -1412,7 +1450,7 @@ try {
         },
         cloakFront: function(x, y){
             noStroke();
-            let xMove = ((-Math.abs(this.v.x * 2) - 0) / 40) * 90;
+            let xMove = ((-Math.abs(this.v.x) - 0) / 40) * 90;
             let yMove = 0;
             yMove = lerp(yMove, -this.v.y, 0.8);
             pushMatrix();
@@ -1432,7 +1470,7 @@ try {
         },
         cloakRear: function(x, y){
             noStroke();
-            let xMove = ((-Math.abs(this.v.x * 2) - 0) / 40) * 90;
+            let xMove = ((-Math.abs(this.v.x) - 0) / 40) * 90;
             let yMove = 0;
             yMove = lerp(yMove, -this.v.y, 0.8);
             pushMatrix();
@@ -1478,28 +1516,29 @@ try {
                     alert("shoot");
                     break;
                 }
+                case "idle": {
+                    for(let i = 0; i < this.pos.length; i += 1){
+                        this.posArms[i] = lerp(this.posArms[i], this.idleArms[i], this.animSpeed);
+                    }
+                    for(let i = 0; i < this.pos.length; i += 1){
+                        this.pos[i] = lerp(this.pos[i], this.idle[i], this.animSpeed);
+                    }
+                }
             }
             //idle
             if(this.action !== ("walk" || "air")){
-                for(let i = 0; i < this.pos.length; i += 1){
-                    this.posArms[i] = lerp(this.posArms[i], this.idleArms[i], this.animSpeed);
-                }
-                for(let i = 0; i < this.pos.length; i += 1){
-                    this.pos[i] = lerp(this.pos[i], this.idle[i], this.animSpeed);
-                }
+                this.action = "idle";
             }
-            //collision box
-            //fill("rgba(255, 255, 255, 0.3)");
-            //ctx.fillRect(this.x, this.y, this.w, this.h);
+            
             
             //render actual player
             pushMatrix();
                 translate(this.x + this.xOff, this.y + this.yOff);
-                //negate cam              
-                let alphaX = (mouse.x + cam.x - cam.align.x)/cam.z;
-                let alphaY = (mouse.y + cam.y - cam.align.y)/cam.z;                  
+                //negate cam             
+                let alphaX = mouse.x / cam.z + cam.x - cam.align.x;
+                let alphaY = mouse.y / cam.z + cam.y - cam.align.y;
                 
-                //reverse player transitions 
+                //reverse player transitions (Note to future self: Look at CZS's comment. Also, keep in mind that when putting this in a function in the player prototype make sure to reverse the directional scaling)
                 let trueX = alphaX - this.x - this.xOff;
                 let trueY = alphaY - this.y - this.yOff;
                 txt = Math.floor(trueX) + ", " + Math.floor(trueY);
@@ -1520,29 +1559,61 @@ try {
             popMatrix();
             this.index += 0.1;
         },  
-        move: function() {
-            let acc = this.physics.acc;
-            let friction = this.physics.friction;
-            let jumpPow = this.physics.jumpPow;
-            let gravity = this.physics.gravity;
-            let speed = this.physics.speed;
-            
-            
-            
-            if(mouse.down){
-                this.shoot = true;
+        
+        collideX: function(that){
+            //first check if the player is touching a block
+            if(edgeCheck(this, that)){
+                //vector velocity can determine what side
+                if(this.v.x > 0){
+                    this.collide.right = true;
+                    this.x = that.x - this.w;
+                }
+                else {
+                    this.collide.left = true;
+                    this.x = that.x + that.w;
+                }
+                //the player is colliding
+                return true;
             }
-            else {
-                this.shoot = false;
+            //the player is not colliding on the x-axis
+            this.collide.left = false;
+            this.collide.right = false;
+            return false;
+        },
+        collideY: function(that){
+            //is the player touching a block?
+            if(edgeCheck(this, that)){
+                //vector velocity can determine orientation
+                if(this.v.y > 0){
+                    this.collide.top = true;
+                    this.y = that.y - this.h;
+                    this.v.y = 0;
+                }
+                else {
+                    this.collide.bottom = true;
+                    this.y = that.y + that.h;
+                    this.v.y *= -0.1;
+                }
+                //the player is colliding on the y-axis
+                return true;
             }
+            //the player is not colliding on the y-axis
+            this.collide.top = false;
+            this.collide.bottom = false;
+            return false;
+        },
+        
+        moveX: function(){
+            this.inputs.left = (keys[37] || keys[65]);
+            this.inputs.right = (keys[39] || keys[68]);
             
             //vector movement
-            if ((keys[37] || keys[65])) { 
-                this.v.x -= acc; 
-                if(!this.jump){
+            if(this.inputs.left && !this.collide.left){
+                this.v.x -= this.acceleration;
+                if(!this.collide.top){
                     this.action = "air";
                 }
-                else if(Math.abs(this.v.x) > 0.1){
+                else if(!this.collide.right){
                     this.action = "walk";
                 }
                 else {
@@ -1550,9 +1621,9 @@ try {
                 }
                 this.dir = -1;
             }
-            else if ((keys[39] || keys[68])) { 
-                this.v.x += acc;
-                if(!this.jump){
+            else if (this.inputs.right && !this.collide.right) { 
+                this.v.x += this.acceleration;
+                if(!this.collide.top){
                     this.action = "air";
                 }
                 else if(Math.abs(this.v.x) > 0.1){
@@ -1563,33 +1634,38 @@ try {
                 }
                 this.dir = 1;
             }
-            else { 
-                this.v.x /= friction; 
-                if(this.jump){
+            else {
+                this.v.x /= this.friction; 
+                if(this.collide.top){
                     this.action = "idle";
                 }
             }
             
-            if ((keys[38] || keys[87]) && this.jump) {
-                this.v.y = -jumpPow;
+            //fixes an annoying bug
+            if(this.v.x !== 0){
+                this.x += this.v.x;
+            }
+            this.v.x = constrain(this.v.x, -this.speed, this.speed);
+            
+        },
+        moveY: function(){
+            this.inputs.up = (keys[38] || keys[87]);
+            
+            if (this.inputs.up && this.collide.top) {
+                this.v.y = -this.jumpPow;
                 this.action = "air";
             }
-            
-            //put stuff together
-    		this.v.y += gravity;
-            this.x += this.v.x;
+            this.v.y += this.gravity;
             this.y += this.v.y;
-            this.jump = false;
-            this.v.x = constrain(this.v.x, -speed, speed);
-            this.top = false;
         },
         
-        //definitions
         display: function() {
-            return this.draw();
-        },
-        update: function(){
-            return this.move();
+            this.draw();
+            err = JSON.stringify(this.collide);
+            
+            //collision box
+            //fill("rgba(255, 255, 255, 0.3)");
+            //ctx.fillRect(this.x, this.y, this.w, this.h);
         },
     };
     
@@ -1600,22 +1676,27 @@ try {
         }
     }
     
+    //the room naming function
     function roomName(){
         if(curColumn === 0 && curRow === 0 && curMap === CAVERNS){
             ctx.save();
                 ctx.textAlign = 'center';
                 ctx.fillStyle = "white";
-                ctx.font = 'bold 30px Lato'
-                ctx.fillText("The", 160, 310);
-                ctx.font = 'bold 50px Lato'
-                ctx.fillText("Desolate Caverns", 300, 350);
+                ctx.font = 'bold 30px Lato';
+                ctx.fillText("The", 190, 310);
+                ctx.font = 'bold 50px Lato';
+                ctx.fillText("Desolate Plains", 300, 350);
             ctx.restore();
         }
     }
     
     //block constructor 
+    let solids = [];
+    let softs = [];
+    let rearBlocks = [];
+    let collisionEntities = [];
     class Block {
-        constructor(x, y, w, h, type, left, right, top, bottom, i) {
+        constructor(x, y, w, h, type, left, right, top, bottom, onEdge, i, collide) {
             this.x = x;
             this.y = y;
             this.w = w;
@@ -1624,26 +1705,30 @@ try {
             //randomize
             this.seed = i;
             
+            //orientation 
             this.left = left;
             this.right = right;
             this.top = top;
             this.bottom = bottom;
+            
+            //is it on the edge of the array?
+            this.onEdge = onEdge;
+            
+            //does it collide?
+            this.collide = collide;
         }
         draw() {
             switch(this.type){
+                //blocks
                 case "block": {
-                    
                     ctx.save();
                         fill(col.bl.block2);
-                        //ctx.globalAlpha = 0.8;
-                        if(!this.bottom || !this.top || !this.left || !this.right){
-                            //ctx.globalAlpha = 1;
+                        if((!this.bottom || !this.top || !this.left || !this.right) && !this.onEdge){
+                            //adjacent space to the left, top, right, or bottom 
                             fill(col.bl.block);
                         }
-                        
                         rect(this.x, this.y, this.w, this.h);
                     ctx.restore();
-                    
                     
                     //grass
                     if(!this.top){
@@ -1694,14 +1779,6 @@ try {
                             );
                         }
                     }
-                    
-                    //collisions
-                    Physics.collideBox.all(player, this);
-                    //Physics.collideBox.all(player, this);
-                    if(Physics.collideBox.top(player, this)){
-                        player.top = true;
-                    }
-                    
                     break;
                 }
                 case "poison": {
@@ -1726,15 +1803,9 @@ try {
                     }
                     
                     ctx.fillRect(this.x, this.y, this.w, this.h);
-                    //collisions
-                    //if(range(this)){
-                        if(Physics.collideBox.touch(player, this)){ 
-                            //poisonSplash.run(this.x, this.y, this.w, this.h);
-                            player.die = true;
-                            
-                            
-                        }
-                    //}
+                    if(edgeCheck(player, this)){
+                        player.die = true;
+                    }
                     break;    
                 }
                 case "pipe": {
@@ -1783,13 +1854,27 @@ try {
                     
                     Physics.collideBox.all(player, this);
                     Physics.collideBox.all(player, that);
+                    break;
+                }
+                //rearBlocks
+                case "lamp": {
+                    ctx.fillStyle = "rgb(63, 71, 77)";
+                    ctx.fillRect(this.x + this.w/2, this.y, this.w/5, this.h);
+                    
+                    //Physics.collideBox.all(player, this);
+                    break;
                 }
             }
         }
     };
     
-    //auto tiling and orientation of blocks (see the pipe)
+    //auto tiling, orientation, edge checks. This isn't raycasting, I just color or position the block based on its position in the array, a much faster method. 
     const tiled = {
+        /**
+         * Created by Arrow (@Arrow.programming)
+         * January, 2025
+         * 
+        **/
         left: function(MAP, row, col, char, char2){
             //if(MAP[row][col] === char){
                 if(MAP[row][col - 1] === char){
@@ -1822,32 +1907,81 @@ try {
                 }
             //}
         },
+        isOnEdge: function(array, row, col) {
+            const numRows = array.length;
+            const numCols = array[0].length;
+            return row === 0 || row === numRows - 1 || col === 0 || col === numCols - 1;
+        },
+        findEdges: function(matrix) {
+            if (!matrix.length) return [];
+        
+            const edges = [];
+            const rows = matrix.length;
+            const cols = matrix[0].length;
+        
+            // Top row
+            for (let col = 0; col < cols; col++) {
+                edges.push(matrix[0][col]);
+            }
+        
+            // Right column (excluding the top and bottom corners)
+            for (let row = 1; row < rows - 1; row++) {
+                edges.push(matrix[row][cols - 1]);
+            }
+        
+            // Bottom row (if there's more than one row)
+            if (rows > 1) {
+                for (let col = cols - 1; col >= 0; col--) {
+                    edges.push(matrix[rows - 1][col]);
+                }
+            }
+        
+            // Left column (excluding the top and bottom corners)
+            for (let row = rows - 2; row > 0; row--) {
+                edges.push(matrix[row][0]);
+            }
+        
+            return edges;
+        }
     };
     
-    //map constructor 
+    //map constructor, this inputs a 2d array (or an array of strings). A representation of one room
     const mapSetup = (function(lvl) {
-        blocks = [];
+        //reset arrays
+        solids = [];
+        softs = [];
+        rearBlocks = [];
         const MAP = lvl;
         let longestX = 0;
         for (let i = 0; i < MAP.length; i++) {
             for (let j = 0; j < MAP[i].length; j++) {
                 switch (MAP[i][j]) {
-                    //The blocks, these all have to be one liners because stated if statements and local variables will be called many, many times. My apologies
+                    //The blocks, these all have to be one liners because stated if statements and local variables will be called many, many times.
+                    
+                    //A standard block
                     case "#": {
-                        blocks.push(new Block(j * blockSize, i * blockSize, blockSize, blockSize, "block", tiled.left(MAP, i, j, "#"), tiled.right(MAP, i, j, "#"), !tiled.top(MAP, i, j, "#") && !tiled.top(MAP, i, j, "-") ? false: true, tiled.bottom(MAP, i, j, "#"), Math.random() * (1.4 - 0.6) + 0.6));
+                        solids.push(new Block(j * blockSize, i * blockSize, blockSize, blockSize, "block", tiled.left(MAP, i, j, "#"), tiled.right(MAP, i, j, "#"), !tiled.top(MAP, i, j, "#") && !tiled.top(MAP, i, j, "-") ? false: true, tiled.bottom(MAP, i, j, "#"), tiled.isOnEdge(MAP, i, j), Math.random() * (1.4 - 0.6) + 0.6, true));
                         break;
                     }
+                    //Poison
                     case "-": {
-                        blocks.push(new Block(j * blockSize, (i * blockSize) + (tiled.top(MAP, i, j, "-") ? 0: 3), blockSize, blockSize, "poison", tiled.left(MAP, i, j, "-"), tiled.right(MAP, i, j, "-"), tiled.top(MAP, i, j, "-"), tiled.bottom(MAP, i, j, "-"), Math.random() * (0.9 - 0.3) + 0.3));
+                        softs.push(new Block(j * blockSize, (i * blockSize) + (tiled.top(MAP, i, j, "-") ? 0: 3), blockSize, blockSize, "poison", tiled.left(MAP, i, j, "-"), tiled.right(MAP, i, j, "-"), tiled.top(MAP, i, j, "-"), tiled.bottom(MAP, i, j, "-"), tiled.isOnEdge(MAP, i, j), Math.random() * (0.9 - 0.3) + 0.3, false));
                         break;
                     }
+                    //A standard pipe
                     case "P": {
-                        blocks.push(new Block(j * blockSize - (tiled.right(MAP, i, j, "#") ? blockSize: 0), (i * blockSize), blockSize * 2, blockSize, "pipe", tiled.left(MAP, i, j, "#"), tiled.right(MAP, i, j, "#"), tiled.top(MAP, i, j, "#"), tiled.bottom(MAP, i, j, "#"), Math.random() * (0.9 - 0.3) + 0.3));
+                        solids.push(new Block(j * blockSize - (tiled.right(MAP, i, j, "#") ? blockSize: 0), (i * blockSize), blockSize * 2, blockSize, "pipe", tiled.left(MAP, i, j, "#"), tiled.right(MAP, i, j, "#"), tiled.top(MAP, i, j, "#"), tiled.bottom(MAP, i, j, "#"), tiled.isOnEdge(MAP, i, j), Math.random() * (0.9 - 0.3) + 0.3, true));
+                        //collisionEntities.push({x: j * blockSize, y: i * blockSize, w: blockSize, h: blockSize});
+                        break;
+                    }
+                    //A checkpoint
+                    case "C": {
+                        rearBlocks.push(new Block(j * blockSize, (i * blockSize) - blockSize * 2, blockSize, blockSize * 3, "lamp", tiled.left(MAP, i, j, "#"), tiled.right(MAP, i, j, "#"), tiled.top(MAP, i, j, "#"), tiled.bottom(MAP, i, j, "#"), tiled.isOnEdge(MAP, i, j), Math.random() * (0.9 - 0.3) + 0.3));
                         break;
                     }
                 }
             }
-            if(MAP[i].length>longestX){
+            if(MAP[i].length > longestX){
                 longestX = MAP[i].length;
             }
         }
@@ -1876,8 +2010,8 @@ try {
         //run the cam
         run: function(){
             //update the cam based on player coords
-            this.x += ((player.x - this.x) / 10) || 0;
-            this.y += ((player.y - this.y) / 15) || 0;
+            this.x = lerp(this.x, player.x, 0.08);
+            this.y = lerp(this.y, player.y, 0.08);
             
             //constrain the camera values from the alignment shift to the level size
             this.x = constrain(this.x, this.align.x, lvlSizeX - this.align.x);
@@ -1889,19 +2023,21 @@ try {
         },
     };
     
+    let times = [];
+    let fps;
+    
     //animation loop
     const render = () => {
-        //initilize frame counter
-        frameCount++;
-        
         //blank canvas
         background(col.bg);
+        
+        //start image cache (Note to future self: Loading stuff before the cache causes weird issues. Make sure to load the image cache before anything else)
+        cache.load();
         
         wind.add();
         wind.run();
         
-        //start image cache
-        cache.load();
+        roomName();
         
         //the equivilant of pushMatrix and popMatrix
         ctx.save();
@@ -1914,29 +2050,64 @@ try {
                 shakes[s].active(s);
             }
             
-            //player
-            if(functions.plDisplay){
-                player.display();
-            }
-            if(functions.plUpdate){
-                player.update();
-            }
-            
+            //seperate particle entities can be run wherever I want to determine their z-index
             poisonParticles.run();
             poisonStream.run();
             
+            //this is a seperate array for blocks that go behind the player. These blocks don't even require their own constructor. They just get pushed into the rearBlocks array as a new Block(). And since they don't collide I can call them behind the player in one frame. Clever, right?
+            for (let i = 0; i < rearBlocks.length; i++) {
+                rearBlocks[i].draw();
+            }
+            
+            //horizontal collisions and player movement
+            if(functions.plUpdate){
+                player.moveX();
+            }
+            for(let i in solids){
+                if(solids[i].collide === true){
+                    let col = player.collideX(solids[i]);
+                    //only collide with one block a frame
+                    if(col){
+                        break;
+                    }
+                }
+            }
+            
+            //vertical collisions and player movement
+            if(functions.plUpdate){
+                player.moveY();
+            }
+            for(let i in solids){
+                if(solids[i].collide === true){
+                    let col = player.collideY(solids[i]);
+                    //only collide with one block a frame
+                    if(col){
+                        break;
+                    }
+                }
+            }
+            
+            //draw the player
+            if(functions.plDisplay){
+                player.display();
+            }
+            
             //running this before the blocks allows me to capture the player only when doing a death animation
             functions.execute(player);
-            functions.playerDeathAnimation.run();
-            //blocks
-            for (let i = 0; i < blocks.length; i++) {
-                blocks[i].draw();
+            
+            //draw the blocks
+            for (let i in softs) {
+                softs[i].draw();
             }
+            for (let i in solids) {
+                solids[i].draw();
+            }
+            
+            
         ctx.restore();
         
-        roomName();
         
-        //overlay
+        //load texture, this adds more depth to the game
         img(cache.img[0], 0, 0);
         
         
@@ -1944,19 +2115,37 @@ try {
         mouse.released = false;
         mouse.clicked = false;
         
+        //this is dev junk
         ctx.font = "25px Arial";
         ctx.fillStyle = "white";
         ctx.fillText(txt, 10, 30);
         ctx.fillText(err, 10, 50);
+        ctx.fillStyle = "orange";
+        ctx.fillText(fps, width - 40, 30);
         
-        //thumb
+        //thumbnail for stalkers
         if(keys[84]){
             background("rgb(255, 255, 255)");
         }
-        window.requestAnimationFrame(render);
+        
+        //animate, manage frames.
+        window.requestAnimationFrame(function() {
+            //Using performance.now over Date(). 
+            const now = performance.now();
+            while (times.length > 0 && times[0] <= now - 1000) {
+              times.shift();
+            }
+            times.push(now);
+            //framerate
+            fps = times.length;
+            console.log("fps: " + fps);
+            //initilize frame counter
+            frameCount += 1;
+            console.log("Frames Passed: " + frameCount)
+            render();
+        });
     };
     render();
-    
     
     /**
     window.addEventListener("resize", function() {
@@ -2037,21 +2226,12 @@ try {
         }
     });
     **/
-}
-catch(e){
+} catch(e){
     console.log(e);
-    //alert(e.stack)
+    //alert(e.stack);
 }
         //<script>        
     </script>
 </html>
 
-<!--
-Easter egg ideas:
-
-You get stuck and rick rolled by the narrator lol
-
--->
-
-
-
+<!---->
