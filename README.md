@@ -1,1 +1,2 @@
-#Psalter Slideshow generater
+# Psalter Slideshow generater
+## Questions? Contact me.
