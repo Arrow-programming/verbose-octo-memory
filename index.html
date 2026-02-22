@@ -3,74 +3,1098 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Psalter Verses</title>
+    <title>Church Slideshow Generator</title>
+    <script src="pptxgen.bundle.js"></script>
+    <script src="psalterMain.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
+        @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Cinzel:wght@400;600&display=swap');
+
+        :root {
+            --bg:         #0f0e0c;
+            --surface:    #1a1814;
+            --surface2:   #242018;
+            --border:     #3a3428;
+            --gold:       #c9a84c;
+            --gold-light: #e2c47a;
+            --text:       #e8e0d0;
+            --text-dim:   #9a9080;
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
+            padding: 0;
         }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #fff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 16px;
+            line-height: 1.6;
+            min-height: 100vh;
         }
-        h1 {
+
+        .site-header {
+            background: linear-gradient(180deg, #1a1410 0%, var(--surface) 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 2rem 2rem 1.5rem;
             text-align: center;
         }
-        label, input, textarea {
-            display: block;
-            width: 100%;
-            margin-bottom: 10px;
+
+        .site-header h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.9rem;
+            color: var(--gold);
+            letter-spacing: 0.08em;
+            font-weight: 400;
         }
-        button {
+
+        .site-header p {
+            color: var(--text-dim);
+            font-style: italic;
+            margin-top: 0.3rem;
+            font-size: 0.95rem;
+        }
+
+        #dbBadge {
+            display: inline-block;
+            margin-top: 0.6rem;
+            padding: 0.25rem 0.9rem;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-family: 'Cinzel', serif;
+            letter-spacing: 0.07em;
+        }
+
+        #dbBadge.ok {
+            background: rgba(74, 156, 106, 0.18);
+            color: #7ecfa0;
+            border: 1px solid rgba(74, 156, 106, 0.35);
+        }
+
+        #dbBadge.err {
+            background: rgba(204, 68, 68, 0.18);
+            color: #f08080;
+            border: 1px solid rgba(204, 68, 68, 0.35);
+        }
+
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 2rem 1.5rem 4rem;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: var(--surface2);
+            border-bottom: 1px solid var(--border);
+            padding: 0.7rem 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+        }
+
+        .card-header h2 {
+            font-family: 'Cinzel', serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--gold);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .card-num {
+            width: 22px;
+            height: 22px;
+            border: 1px solid var(--gold);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Cinzel', serif;
+            font-size: 0.7rem;
+            color: var(--gold);
+            flex-shrink: 0;
+        }
+
+        .card-body {
+            padding: 1.2rem;
+        }
+
+        .row {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-bottom: 0.9rem;
+        }
+
+        .row:last-child {
+            margin-bottom: 0;
+        }
+
+        .field {
+            flex: 1;
+            min-width: 160px;
+        }
+
+        .field.narrow {
+            flex: 0 0 120px;
+            min-width: 100px;
+        }
+
+        .field.wide {
+            flex: 2;
+        }
+
+        label {
             display: block;
+            font-size: 0.78rem;
+            color: var(--text-dim);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            margin-bottom: 0.35rem;
+            font-family: 'Cinzel', serif;
+        }
+
+        input[type=text],
+        input[type=date],
+        select,
+        textarea {
             width: 100%;
-            padding: 10px;
-            background-color: #007bff;
-            color: #fff;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            color: var(--text);
+            font-family: 'EB Garamond', Georgia, serif;
+            font-size: 0.95rem;
+            padding: 0.45rem 0.7rem;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        input[type=text]:focus,
+        input[type=date]:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--gold);
+        }
+
+        select option {
+            background: var(--surface);
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        .psalter-group {
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            padding: 0.9rem;
+            margin-bottom: 0.8rem;
+            background: var(--bg);
+        }
+
+        .psalter-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .psalter-label {
+            font-family: 'Cinzel', serif;
+            font-size: 0.72rem;
+            color: var(--gold);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            margin-bottom: 0.7rem;
+        }
+
+        .divider {
             border: none;
+            border-top: 1px solid var(--border);
+            margin: 1rem 0;
+        }
+
+        .toggle-row {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .toggle-row label {
+            margin: 0;
+            text-transform: none;
+            font-size: 0.9rem;
+            color: var(--text);
+            letter-spacing: 0;
+        }
+
+        input[type=checkbox] {
+            accent-color: var(--gold);
+            width: 15px;
+            height: 15px;
             cursor: pointer;
+            flex-shrink: 0;
         }
-        button:hover {
-            background-color: #0056b3;
+
+        .btn {
+            font-family: 'Cinzel', serif;
+            font-size: 0.85rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            padding: 0.7rem 1.5rem;
+            transition: all 0.2s;
         }
-        .output {
-            margin-top: 20px;
-            padding: 10px;
-            background-color: #e9ecef;
-            border: 1px solid #ced4da;
+
+        .btn-primary {
+            background: var(--gold);
+            color: #1a1410;
+            font-weight: 600;
+        }
+
+        .btn-primary:hover {
+            background: var(--gold-light);
+        }
+
+        .btn-primary:disabled {
+            background: var(--border);
+            color: var(--text-dim);
+            cursor: not-allowed;
+        }
+
+        .generate-area {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .generate-area .btn-primary {
+            padding: 1rem 3rem;
+            font-size: 1rem;
+        }
+
+        #statusMsg {
+            margin-top: 1rem;
+            font-style: italic;
+            color: var(--text-dim);
+            min-height: 1.5rem;
+        }
+
+        #statusMsg.done {
+            color: #7ecfa0;
+        }
+
+        #statusMsg.err {
+            color: #f08080;
+        }
+
+        .pm-only,
+        .am-only {
+            display: none;
+        }
+
+        body.service-pm .pm-only {
+            display: block;
+        }
+
+        body.service-am .am-only {
+            display: block;
         }
     </style>
 </head>
-<body>
+<body class="service-pm">
+
+    <header class="site-header">
+        <h1>&#9962; Church Slideshow Generator</h1>
+        <p>Fill in the service details below, then click Generate to produce your PowerPoint.</p>
+        <div id="dbBadge">Checking psalterMain.js&#8230;</div>
+    </header>
+
     <div class="container">
-        <h1>Psalter Verses</h1>
-        <form id="psalterForm">
-            <label for="psalterNumber">Psalter Number</label>
-            <input type="number" id="psalterNumber" name="psalterNumber" required>
-            
-            <label for="verses">Verses</label>
-            <textarea id="verses" name="verses" rows="4" required></textarea>
-            
-            <button type="submit">Get Verses</button>
-        </form>
-        <div id="output" class="output"></div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-num">1</div>
+                <h2>Service Details</h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="field">
+                        <label>Date</label>
+                        <input type="date" id="serviceDate">
+                    </div>
+                    <div class="field">
+                        <label>Service</label>
+                        <select id="serviceType" onchange="onServiceTypeChange()">
+                            <option value="Morning">Morning</option>
+                            <option value="Evening" selected>Evening</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card pm-only" id="songServiceCard">
+            <div class="card-header">
+                <div class="card-num">2</div>
+                <h2>Song Service</h2>
+            </div>
+            <div class="card-body">
+                <div class="psalter-group">
+                    <div class="psalter-label">Song Service Psalter 1</div>
+                    <div class="row">
+                        <div class="field narrow">
+                            <label>Psalter #</label>
+                            <input type="text" id="ss_no" placeholder="422">
+                        </div>
+                        <div class="field">
+                            <label>Verses</label>
+                            <input type="text" id="ss_verses" placeholder="1,5">
+                        </div>
+                        <div class="field narrow">
+                            <label>Tune</label>
+                            <input type="text" id="ss_tune">
+                        </div>
+                        <div class="field narrow">
+                            <label>Verses/Slide</label>
+                            <select id="ss_vps">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="psalter-group">
+                    <div class="psalter-label">
+                        Song Service Psalter 2
+                        <span style="font-style:italic; text-transform:none; color:var(--text-dim);">(optional)</span>
+                    </div>
+                    <div class="row">
+                        <div class="field narrow">
+                            <label>Psalter #</label>
+                            <input type="text" id="ss2_no" placeholder="220">
+                        </div>
+                        <div class="field">
+                            <label>Verses</label>
+                            <input type="text" id="ss2_verses" placeholder="1,2">
+                        </div>
+                        <div class="field narrow">
+                            <label>Tune</label>
+                            <input type="text" id="ss2_tune">
+                        </div>
+                        <div class="field narrow">
+                            <label>Verses/Slide</label>
+                            <select id="ss2_vps">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="card-num">3</div>
+                <h2>Order of Service</h2>
+            </div>
+            <div class="card-body">
+
+                <p style="font-size:0.82rem; color:var(--text-dim); margin-bottom:1rem; font-style:italic;">
+                    Votum &amp; Salutation, Pastoral Prayer, Prayer, and Benediction are included automatically in the bulletin slide.
+                </p>
+
+                <div class="psalter-group">
+                    <div class="psalter-label">First Psalter</div>
+                    <div class="row">
+                        <div class="field narrow">
+                            <label>Psalter #</label>
+                            <input type="text" id="p1_no" placeholder="349">
+                        </div>
+                        <div class="field">
+                            <label>Verses</label>
+                            <input type="text" id="p1_verses" placeholder="1-4  or  1,6">
+                        </div>
+                        <div class="field narrow">
+                            <label>Tune</label>
+                            <input type="text" id="p1_tune" placeholder="122C">
+                        </div>
+                        <div class="field narrow">
+                            <label>Verses/Slide</label>
+                            <select id="p1_vps">
+                                <option value="1">1</option>
+                                <option value="2" selected>2</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="am-only" id="readingOfLawSection">
+                    <div class="toggle-row" style="margin-bottom:0.8rem;">
+                        <input type="checkbox" id="readingOfLaw" checked>
+                        <label for="readingOfLaw">Include Reading of the Law (listed in bulletin)</label>
+                    </div>
+                </div>
+
+                <div class="psalter-group">
+                    <div class="psalter-label">
+                        Scripture
+                        <span class="pm-only" style="display:inline;">&amp; Text</span>
+                    </div>
+                    <div class="row">
+                        <div class="field">
+                            <label>Scripture Reading</label>
+                            <input type="text" id="sc_reading" placeholder="Acts 18:1-11">
+                        </div>
+                        <div class="field pm-only">
+                            <label>Sermon Text</label>
+                            <input type="text" id="sc_text" placeholder="Matthew 14:28-33  or  vv. 28-33">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="psalter-group">
+                    <div class="psalter-label">Second Psalter</div>
+                    <div class="row">
+                        <div class="field narrow">
+                            <label>Psalter #</label>
+                            <input type="text" id="p2_no" placeholder="334">
+                        </div>
+                        <div class="field">
+                            <label>Verses</label>
+                            <input type="text" id="p2_verses" placeholder="1-4  or  1,3">
+                        </div>
+                        <div class="field narrow">
+                            <label>Tune</label>
+                            <input type="text" id="p2_tune" placeholder="119N">
+                        </div>
+                        <div class="field narrow">
+                            <label>Verses/Slide</label>
+                            <select id="p2_vps">
+                                <option value="1">1</option>
+                                <option value="2" selected>2</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pm-only">
+                    <div class="toggle-row">
+                        <input type="checkbox" id="apostlesCreed" checked>
+                        <label for="apostlesCreed">Include Apostles' Creed slide</label>
+                    </div>
+                </div>
+
+                <hr class="divider">
+
+                <div class="psalter-group">
+                    <div class="psalter-label">Third Psalter (Pre-Sermon)</div>
+                    <div class="row">
+                        <div class="field narrow">
+                            <label>Psalter #</label>
+                            <input type="text" id="p3_no" placeholder="112">
+                        </div>
+                        <div class="field">
+                            <label>Verses</label>
+                            <input type="text" id="p3_verses" placeholder="1-4">
+                        </div>
+                        <div class="field narrow">
+                            <label>Tune</label>
+                            <input type="text" id="p3_tune" placeholder="40B">
+                        </div>
+                        <div class="field narrow">
+                            <label>Verses/Slide</label>
+                            <select id="p3_vps">
+                                <option value="1" selected>1</option>
+                                <option value="2">2</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="psalter-group">
+                    <div class="psalter-label">Sermon</div>
+                    <div class="row">
+                        <div class="field wide">
+                            <label>Sermon Title</label>
+                            <input type="text" id="sermon_title" placeholder="Encouragements in Bringing the Gospel">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="field">
+                            <label>
+                                Sermon Points
+                                <span style="font-style:italic; text-transform:none;">(one per line)</span>
+                            </label>
+                            <textarea id="sermon_points" rows="3" placeholder="Amid hard work&#10;Amid gospel rejection&#10;Amid faithful teaching"></textarea>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="field">
+                            <label>Text Reference (for slide)</label>
+                            <input type="text" id="sermon_ref" placeholder="Acts 18:1-11">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="am-only" id="lordSupperSection">
+                    <div class="toggle-row" style="margin-bottom:0.8rem;">
+                        <input type="checkbox" id="lordSupper">
+                        <label for="lordSupper">Include Lord's Supper Form &#8211; Part 1 (listed in bulletin)</label>
+                    </div>
+                </div>
+
+                <div class="psalter-group">
+                    <div class="psalter-label">Fourth Psalter (Post-Sermon)</div>
+                    <div class="row">
+                        <div class="field narrow">
+                            <label>Psalter #</label>
+                            <input type="text" id="p4_no" placeholder="95">
+                        </div>
+                        <div class="field">
+                            <label>Verses</label>
+                            <input type="text" id="p4_verses" placeholder="1-3  or blank=all">
+                        </div>
+                        <div class="field narrow">
+                            <label>Tune</label>
+                            <input type="text" id="p4_tune" placeholder="37A">
+                        </div>
+                        <div class="field narrow">
+                            <label>Verses/Slide</label>
+                            <select id="p4_vps">
+                                <option value="1" selected>1</option>
+                                <option value="2">2</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="psalter-group">
+                    <div class="psalter-label">Doxology</div>
+                    <div class="row">
+                        <div class="field narrow">
+                            <label>Psalter #</label>
+                            <input type="text" id="dox_no" placeholder="413" value="413">
+                        </div>
+                        <div class="field">
+                            <label>Verses</label>
+                            <input type="text" id="dox_verses" placeholder="1-2  or blank=all">
+                        </div>
+                        <div class="field narrow">
+                            <label>Tune</label>
+                            <input type="text" id="dox_tune" placeholder="150E" value="150E">
+                        </div>
+                        <div class="field narrow">
+                            <label>Verses/Slide</label>
+                            <select id="dox_vps">
+                                <option value="1">1</option>
+                                <option value="2" selected>2</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="generate-area">
+            <button class="btn btn-primary" id="generateBtn" onclick="generate()">&#10022; Generate Slideshow</button>
+            <div id="statusMsg"></div>
+        </div>
+
     </div>
 
     <script>
-        document.getElementById('psalterForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const psalterNumber = document.getElementById('psalterNumber').value;
-            const verses = document.getElementById('verses').value;
-            
-            const outputDiv = document.getElementById('output');
-            outputDiv.innerHTML = '<h2>Psalter ' + psalterNumber + '</h2><p>' + verses.replace(/\\n/g, '<br>') + '</p>';
-        });
+        let psalterDB = [];
+
+        function initPsalterDB() {
+            const badge = document.getElementById('dbBadge');
+            try {
+                if (typeof psalterData === 'undefined') {
+                    throw new Error('psalterData not defined — is psalterMain.js present?');
+                }
+                const arr = Array.isArray(psalterData)
+                    ? psalterData
+                    : (psalterData.data && Array.isArray(psalterData.data))
+                        ? psalterData.data
+                        : null;
+                if (!arr || arr.length === 0) {
+                    throw new Error('psalterData contains no entries.');
+                }
+                psalterDB = arr;
+                badge.className = 'ok';
+                badge.textContent = `✓ psalterMain.js loaded — ${psalterDB.length} psalter entries`;
+            } catch (e) {
+                badge.className = 'err';
+                badge.textContent = '✗ ' + e.message;
+                document.getElementById('generateBtn').disabled = true;
+            }
+        }
+
+        function findPsalter(no, tune) {
+            const s = String(no).trim().toLowerCase();
+            const matches = psalterDB.filter(p => String(p.psalterNo).trim().toLowerCase() === s);
+            if (matches.length === 0) return null;
+            if (matches.length === 1) return matches[0];
+            const t = (tune || '').trim().toLowerCase();
+            const m = t.match(/tune\s*(\d+)/);
+            if (m) {
+                const idx = parseInt(m[1]) - 1;
+                return matches[idx] || matches[0];
+            }
+            return matches[0];
+        }
+
+        function onServiceTypeChange() {
+            const isAM = document.getElementById('serviceType').value === 'Morning';
+            document.body.className = isAM ? 'service-am' : 'service-pm';
+            document.querySelectorAll('.pm-only').forEach(el => {
+                if (el.style.display === 'inline') {
+                    el.style.display = isAM ? 'none' : 'inline';
+                }
+            });
+        }
+
+        function parseVerseSelection(input, total) {
+            const s = (input || '').trim();
+            if (!s || s.toLowerCase() === 'all') {
+                return Array.from({ length: total }, (_, i) => i + 1);
+            }
+            const result = [];
+            for (const part of s.split(',').map(x => x.trim())) {
+                if (part.includes('-')) {
+                    const [a, b] = part.split('-').map(Number);
+                    for (let i = a; i <= b; i++) result.push(i);
+                } else if (part) {
+                    result.push(Number(part));
+                }
+            }
+            return result.filter(n => n >= 1 && n <= total);
+        }
+
+        function verseDisplayNo(verse) {
+            const m = (verse.verseNo || '').match(/\d+/);
+            return m ? parseInt(m[0]) : '';
+        }
+
+        function formatVersesLabel(input) {
+            const s = (input || '').trim();
+            if (!s || s.toLowerCase() === 'all') return '';
+            return s.replace(/,(\S)/g, ', $1');
+        }
+
+        function formatDate(isoDate) {
+            if (!isoDate) return '';
+            const [y, m, d] = isoDate.split('-').map(Number);
+            const months = [
+                'January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'
+            ];
+            return `${months[m - 1]} ${d}, ${y}`;
+        }
+
+        function toRoman(n) {
+            const vals = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1];
+            const syms = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I'];
+            let result = '';
+            for (let i = 0; i < vals.length; i++) {
+                while (n >= vals[i]) {
+                    result += syms[i];
+                    n -= vals[i];
+                }
+            }
+            return result;
+        }
+
+        const BG   = '000000';
+        const FG   = 'FFFFFF';
+        const GRAY = '999999';
+
+        function bulletinLine(runs, txt, bold) {
+            runs.push({ text: txt, options: { bold: !!bold, fontSize: 11, breakLine: true } });
+        }
+
+        function bulletinSpace(runs) {
+            runs.push({ text: ' ', options: { fontSize: 5, breakLine: true } });
+        }
+
+        function psalterBulletinStr(cfg) {
+            if (!cfg.no) return null;
+            const vl   = formatVersesLabel(cfg.verses);
+            const vstr = vl ? `:${vl}` : '';
+            const tune = cfg.tune ? ` (${cfg.tune})` : '';
+            return `Psalter ${cfg.no}${vstr}${tune}`;
+        }
+
+        function addBulletinSlide(pres, svc) {
+            const slide = pres.addSlide();
+            slide.background = { color: BG };
+
+            slide.addText(`${formatDate(svc.date)}  ${svc.serviceType} Service`, {
+                x: 0.5, y: 0.28, w: 9, h: 0.45,
+                align: 'center', color: FG,
+                fontSize: 14, fontFace: 'Calibri', bold: false
+            });
+
+            const runs = [];
+            const add  = (txt, bold) => bulletinLine(runs, txt, bold);
+            const sp   = ()          => bulletinSpace(runs);
+
+            if (svc.serviceType === 'Evening') {
+                const ssParts = [];
+                if (svc.songService.no) {
+                    const vl = formatVersesLabel(svc.songService.verses);
+                    ssParts.push(`Psalter ${svc.songService.no}${vl ? ':' + vl : ''}`);
+                }
+                if (svc.songService2.no) {
+                    const vl = formatVersesLabel(svc.songService2.verses);
+                    ssParts.push(`Psalter ${svc.songService2.no}${vl ? ':' + vl : ''}`);
+                }
+                if (ssParts.length) {
+                    add(`Song Service: ${ssParts.join(' and ')}`, false);
+                    sp();
+                }
+                add('Votum & Salutation', false);
+                const p1str = psalterBulletinStr(svc.p1);
+                if (p1str) add(p1str, false);
+                if (svc.scripture.reading) {
+                    add(`Scripture: ${svc.scripture.reading}`, false);
+                    if (svc.scripture.text) add(`Text: ${svc.scripture.text}`, false);
+                }
+                const p2str = psalterBulletinStr(svc.p2);
+                if (p2str) add(p2str, false);
+                if (svc.apostlesCreed) add("Apostles' Creed", false);
+                add('Pastoral Prayer', false);
+                const p3str = psalterBulletinStr(svc.p3);
+                if (p3str) add(p3str, false);
+                if (svc.sermon.title) add(`Sermon: ${svc.sermon.title}`, true);
+                add('Prayer', false);
+                const p4str = psalterBulletinStr(svc.p4);
+                if (p4str) add(p4str, false);
+                add('Benediction', false);
+                if (svc.dox.no) {
+                    const vl   = formatVersesLabel(svc.dox.verses);
+                    const tune = svc.dox.tune ? ` (${svc.dox.tune})` : '';
+                    add(`Doxology \u2013 ${svc.dox.no}${vl ? ':' + vl : ''}${tune}`, true);
+                }
+            } else {
+                add('Votum & Salutation', false);
+                const p1str = psalterBulletinStr(svc.p1);
+                if (p1str) add(p1str, false);
+                if (svc.readingOfLaw) add('Reading of the Law', false);
+                const p2str = psalterBulletinStr(svc.p2);
+                if (p2str) add(p2str, false);
+                if (svc.scripture.reading) add(`Scripture: ${svc.scripture.reading}`, false);
+                add('Pastoral Prayer', false);
+                const p3str = psalterBulletinStr(svc.p3);
+                if (p3str) add(p3str, false);
+                if (svc.sermon.title) add(`Sermon: ${svc.sermon.title}`, true);
+                add('Prayer of Thanksgiving', false);
+                if (svc.lordSupper) add("Lord's Supper Form \u2013 Part 1", false);
+                const p4str = psalterBulletinStr(svc.p4);
+                if (p4str) add(p4str, false);
+                add('Benediction', false);
+                if (svc.dox.no) {
+                    const vl   = formatVersesLabel(svc.dox.verses);
+                    const tune = svc.dox.tune ? ` (${svc.dox.tune})` : '';
+                    add(`Doxology \u2013 ${svc.dox.no}${vl ? ':' + vl : ''}${tune}`, true);
+                }
+            }
+
+            slide.addText(runs, {
+                x: 0.5, y: 0.85, w: 9, h: 4.5,
+                align: 'center', valign: 'top',
+                color: FG, fontFace: 'Calibri'
+            });
+        }
+
+        function addPsalterSlides(pres, config) {
+            const { no, verses, tune, vps } = config;
+            if (!no) return;
+
+            const psalter = findPsalter(no, tune);
+            if (!psalter) {
+                console.warn('Psalter not found:', no);
+                return;
+            }
+
+            const psalterTitle   = psalter.psalterTitle || '';
+            const psalterPassage = psalter.passage || '';
+            const verseIndices   = parseVerseSelection(verses, psalter.verses.length);
+            const vl             = formatVersesLabel(verses);
+            const versesRange    = verseIndices.length > 0 ? ':' + (vl || verseIndices.join(', ')) : '';
+            const headerParts    = [`Psalter ${no}${versesRange}`];
+            if (psalterTitle)   headerParts.push(psalterTitle);
+            if (psalterPassage) headerParts.push(psalterPassage);
+            const headerText     = headerParts.join('     ');
+            const perSlide       = parseInt(vps) || 1;
+
+            for (let i = 0; i < verseIndices.length; i += perSlide) {
+                const group = verseIndices.slice(i, i + perSlide);
+                const slide = pres.addSlide();
+                slide.background = { color: BG };
+
+                slide.addText(headerText, {
+                    x: 0.5, y: 0.12, w: 9, h: 0.28,
+                    align: 'center', color: GRAY,
+                    fontSize: 9, fontFace: 'Calibri', bold: false
+                });
+
+                const runs = [];
+                group.forEach((verseIdx, gi) => {
+                    const v = psalter.verses[verseIdx - 1];
+                    if (!v) return;
+                    const vNum  = verseDisplayNo(v);
+                    const lines = v.lyrics.split('\n');
+                    if (gi > 0) {
+                        runs.push({ text: ' ', options: { fontSize: 7, breakLine: true } });
+                    }
+                    lines.forEach((line, li) => {
+                        runs.push({
+                            text: li === 0 ? `${vNum}. ${line}` : line,
+                            options: { breakLine: li < lines.length - 1 || gi < group.length - 1 }
+                        });
+                    });
+                });
+
+                const totalLines = group.reduce((sum, vi) => {
+                    const v = psalter.verses[vi - 1];
+                    return sum + (v ? v.lyrics.split('\n').length : 0);
+                }, 0) + (group.length - 1);
+                const fontSize = totalLines > 12 ? 14 : totalLines > 8 ? 15 : 17;
+
+                slide.addText(runs, {
+                    x: 0.6, y: 0.5, w: 8.8, h: 5.0,
+                    align: 'center', valign: 'middle',
+                    color: FG, fontFace: 'Calibri',
+                    fontSize, lineSpacingMultiple: 1.15
+                });
+            }
+        }
+
+        function addScriptureSlide(pres, svc) {
+            if (!svc.scripture.reading) return;
+            const slide = pres.addSlide();
+            slide.background = { color: BG };
+
+            const runs = [
+                { text: `Scripture: ${svc.scripture.reading}`, options: { fontSize: 20, bold: false, breakLine: true } }
+            ];
+            if (svc.scripture.text) {
+                runs.push({ text: ' ', options: { fontSize: 8, breakLine: true } });
+                runs.push({ text: `Text: ${svc.scripture.text}`, options: { fontSize: 20, italic: true, bold: false } });
+            }
+
+            slide.addText(runs, {
+                x: 0.5, y: 1, w: 9, h: 3.5,
+                align: 'center', valign: 'middle',
+                color: FG, fontFace: 'Calibri'
+            });
+        }
+
+        function addApostlesCreedSlide(pres) {
+            const slide = pres.addSlide();
+            slide.background = { color: BG };
+
+            slide.addText("Apostles' Creed", {
+                x: 0.5, y: 0.18, w: 9, h: 0.35,
+                align: 'center', color: GRAY, fontSize: 10, fontFace: 'Calibri'
+            });
+
+            const creedItems = [
+                'I believe in God the Father, Almighty, Maker of heaven and earth;',
+                'And in Jesus Christ, His only begotten Son, our Lord;',
+                'Who was conceived by the Holy Ghost, born of the Virgin Mary;',
+                'Suffered under Pontius Pilate; was crucified, dead and buried; He descended into hell;',
+                'The third day He rose again from the dead;',
+                'He ascended into heaven, and sitteth at the right hand of God the Father Almighty;',
+                'From thence He shall come to judge the quick and the dead;',
+                'I believe in the Holy Ghost;',
+                'I believe an holy catholic church; the communion of saints;',
+                'The forgiveness of sins;',
+                'The resurrection of the body;',
+                'And the life everlasting. Amen.'
+            ];
+
+            const runs = creedItems.map((item, idx) => [
+                { text: `${toRoman(idx + 1)}.\t`, options: { bold: false } },
+                { text: item,                      options: { bold: false, breakLine: true } }
+            ]).flat();
+
+            slide.addText(runs, {
+                x: 0.5, y: 0.6, w: 9, h: 4.9,
+                color: FG, fontFace: 'Calibri', fontSize: 10,
+                valign: 'top', align: 'left', lineSpacingMultiple: 1.2
+            });
+        }
+
+        function addSermonSlide(pres, svc) {
+            if (!svc.sermon.title) return;
+            const slide = pres.addSlide();
+            slide.background = { color: BG };
+
+            slide.addText(svc.sermon.title, {
+                x: 0.5, y: 0.7, w: 9, h: 1.2,
+                align: 'center', valign: 'middle',
+                color: FG, fontFace: 'Calibri', fontSize: 24, bold: false
+            });
+
+            const points = (svc.sermon.points || '').split('\n').map(s => s.trim()).filter(Boolean);
+            if (points.length > 0) {
+                const runs = points.map((pt, idx) => ({
+                    text: `${idx + 1}. ${pt}`,
+                    options: { breakLine: idx < points.length - 1 }
+                }));
+                slide.addText(runs, {
+                    x: 1, y: 2.1, w: 8, h: 2.5,
+                    align: 'center', valign: 'top',
+                    color: FG, fontFace: 'Calibri', fontSize: 16
+                });
+            }
+
+            if (svc.sermon.ref) {
+                slide.addText(`Text: ${svc.sermon.ref}`, {
+                    x: 0.5, y: 4.9, w: 9, h: 0.4,
+                    align: 'center', color: GRAY, fontSize: 11, fontFace: 'Calibri', italic: true
+                });
+            }
+        }
+
+        async function generate() {
+            const btn    = document.getElementById('generateBtn');
+            const status = document.getElementById('statusMsg');
+            const isAM   = document.getElementById('serviceType').value === 'Morning';
+
+            const svc = {
+                date:        document.getElementById('serviceDate').value,
+                serviceType: document.getElementById('serviceType').value,
+                songService: {
+                    no:     document.getElementById('ss_no').value.trim(),
+                    verses: document.getElementById('ss_verses').value.trim(),
+                    tune:   document.getElementById('ss_tune').value.trim(),
+                    vps:    document.getElementById('ss_vps').value
+                },
+                songService2: {
+                    no:     document.getElementById('ss2_no').value.trim(),
+                    verses: document.getElementById('ss2_verses').value.trim(),
+                    tune:   document.getElementById('ss2_tune').value.trim(),
+                    vps:    document.getElementById('ss2_vps').value
+                },
+                p1: {
+                    no:     document.getElementById('p1_no').value.trim(),
+                    verses: document.getElementById('p1_verses').value.trim(),
+                    tune:   document.getElementById('p1_tune').value.trim(),
+                    vps:    document.getElementById('p1_vps').value
+                },
+                readingOfLaw: isAM && document.getElementById('readingOfLaw').checked,
+                scripture: {
+                    reading: document.getElementById('sc_reading').value.trim(),
+                    text:    isAM ? '' : document.getElementById('sc_text').value.trim()
+                },
+                p2: {
+                    no:     document.getElementById('p2_no').value.trim(),
+                    verses: document.getElementById('p2_verses').value.trim(),
+                    tune:   document.getElementById('p2_tune').value.trim(),
+                    vps:    document.getElementById('p2_vps').value
+                },
+                apostlesCreed: !isAM && document.getElementById('apostlesCreed').checked,
+                p3: {
+                    no:     document.getElementById('p3_no').value.trim(),
+                    verses: document.getElementById('p3_verses').value.trim(),
+                    tune:   document.getElementById('p3_tune').value.trim(),
+                    vps:    document.getElementById('p3_vps').value
+                },
+                sermon: {
+                    title:  document.getElementById('sermon_title').value.trim(),
+                    points: document.getElementById('sermon_points').value.trim(),
+                    ref:    document.getElementById('sermon_ref').value.trim()
+                },
+                lordSupper: isAM && document.getElementById('lordSupper').checked,
+                p4: {
+                    no:     document.getElementById('p4_no').value.trim(),
+                    verses: document.getElementById('p4_verses').value.trim(),
+                    tune:   document.getElementById('p4_tune').value.trim(),
+                    vps:    document.getElementById('p4_vps').value
+                },
+                dox: {
+                    no:     document.getElementById('dox_no').value.trim(),
+                    verses: document.getElementById('dox_verses').value.trim(),
+                    tune:   document.getElementById('dox_tune').value.trim(),
+                    vps:    document.getElementById('dox_vps').value
+                }
+            };
+
+            if (psalterDB.length === 0) {
+                status.className = 'err';
+                status.textContent = 'psalterMain.js could not be loaded — check the console.';
+                return;
+            }
+
+            btn.disabled = true;
+            status.className = '';
+            status.textContent = 'Building slides\u2026';
+
+            try {
+                const pres  = new PptxGenJS();
+                pres.layout = 'LAYOUT_16x9';
+                pres.title  = `${formatDate(svc.date)} ${svc.serviceType} Service`;
+
+                if (isAM) {
+                    addBulletinSlide(pres, svc);
+                    addPsalterSlides(pres, svc.p1);
+                    addBulletinSlide(pres, svc);
+                    addPsalterSlides(pres, svc.p2);
+                    addScriptureSlide(pres, svc);
+                    addBulletinSlide(pres, svc);
+                    addPsalterSlides(pres, svc.p3);
+                    addSermonSlide(pres, svc);
+                    addPsalterSlides(pres, svc.p4);
+                    addPsalterSlides(pres, svc.dox);
+                } else {
+                    addBulletinSlide(pres, svc);
+                    addPsalterSlides(pres, svc.songService);
+                    addPsalterSlides(pres, svc.songService2);
+                    addBulletinSlide(pres, svc);
+                    addPsalterSlides(pres, svc.p1);
+                    addScriptureSlide(pres, svc);
+                    addPsalterSlides(pres, svc.p2);
+                    if (svc.apostlesCreed) addApostlesCreedSlide(pres);
+                    addBulletinSlide(pres, svc);
+                    addPsalterSlides(pres, svc.p3);
+                    addSermonSlide(pres, svc);
+                    addPsalterSlides(pres, svc.p4);
+                    addPsalterSlides(pres, svc.dox);
+                }
+
+                const fileName = `${formatDate(svc.date)} ${svc.serviceType} Service.pptx`;
+                status.textContent = 'Writing file\u2026';
+                await pres.writeFile({ fileName });
+
+                status.className = 'done';
+                status.textContent = `✓ Done! "${fileName}" downloaded.`;
+            } catch (err) {
+                status.className = 'err';
+                status.textContent = 'Error: ' + err.message;
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        document.getElementById('serviceDate').valueAsDate = new Date();
+        window.addEventListener('DOMContentLoaded', initPsalterDB);
     </script>
+
 </body>
 </html>
