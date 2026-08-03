@@ -498,15 +498,14 @@ https://github.com/Arrow-programming
 
                 <div class="psalter-group">
                     <div class="psalter-label">
-                        Scripture
-                        <span class="pm-only" style="display:inline;">&amp; Text</span>
+                        Scripture &amp; Text
                     </div>
                     <div class="row">
                         <div class="field">
                             <label>Scripture Reading</label>
                             <input type="text" id="sc_reading" placeholder="Acts 18:1-11">
                         </div>
-                        <div class="field pm-only">
+                        <div class="field">
                             <label>Sermon Text</label>
                             <input type="text" id="sc_text" placeholder="Matthew 14:28-33  or  vv. 28-33">
                         </div>
@@ -777,22 +776,56 @@ https://github.com/Arrow-programming
 
         const BG   = '000000';
         const FG   = 'FFFFFF';
-        const GRAY = '999999';
+        const GRAY = 'FFFFFF';
 
-        function bulletinLine(runs, txt, bold) {
-            runs.push({ text: txt, options: { bold: !!bold, fontSize: 11, breakLine: true } });
+        function bulletinLine(runs, txt, bold, italic) {
+            runs.push({ text: txt, options: { bold: !!bold, italic: !!italic, fontSize: 18, breakLine: true } });
         }
 
         function bulletinSpace(runs) {
             runs.push({ text: ' ', options: { fontSize: 5, breakLine: true } });
         }
 
-        function psalterBulletinStr(cfg) {
+        function addBulletinText(runs, txt, bold, italic) {
+            if (Array.isArray(txt)) {
+                txt.forEach((part) => {
+                    runs.push({
+                        text: part.text,
+                        options: {
+                            ...part.options,
+                            bold: !!bold && !part.options?.italic,
+                            italic: !!italic || !!part.options?.italic,
+                            fontSize: 18
+                        }
+                    });
+                });
+                runs.push({ text: '', options: { breakLine: true } });
+            } else {
+                bulletinLine(runs, txt, bold, italic);
+            }
+        }
+
+        function psalterBulletinRuns(cfg) {
             if (!cfg.no) return null;
-            const vl   = formatVersesLabel(cfg.verses);
-            const vstr = vl ? `:${vl}` : '';
-            const tune = cfg.tune ? ` (${cfg.tune})` : '';
-            return `Psalter ${cfg.no}${vstr}${tune}`;
+
+            const runs = [];
+            runs.push({ text: `Psalter ${cfg.no}`, options: { fontSize: 18 } });
+            const vl = formatVersesLabel(cfg.verses);
+            if (vl) {
+                runs.push({ text: `:${vl}`, options: { fontSize: 18 } });
+            }
+            if (cfg.tune) {
+                const tune = String(cfg.tune).trim();
+                const bracketMatch = tune.match(/^(.*?)(\[[^\]]+\])$/);
+                if (bracketMatch) {
+                    runs.push({ text: ` (${bracketMatch[1].trim()}`, options: { fontSize: 18 } });
+                    runs.push({ text: bracketMatch[2], options: { fontSize: 18, italic: true } });
+                    runs.push({ text: ')', options: { fontSize: 18 } });
+                } else {
+                    runs.push({ text: ` (${tune})`, options: { fontSize: 18, italic: true } });
+                }
+            }
+            return runs;
         }
 
         function addBulletinSlide(pres, svc) {
@@ -806,7 +839,7 @@ https://github.com/Arrow-programming
             });
 
             const runs = [];
-            const add  = (txt, bold) => bulletinLine(runs, txt, bold);
+            const add  = (txt, bold) => addBulletinText(runs, txt, bold);
             const sp   = ()          => bulletinSpace(runs);
 
             if (svc.serviceType === 'Evening') {
@@ -824,49 +857,52 @@ https://github.com/Arrow-programming
                     sp();
                 }
                 add('Votum & Salutation', false);
-                const p1str = psalterBulletinStr(svc.p1);
-                if (p1str) add(p1str, false);
+                const p1runs = psalterBulletinRuns(svc.p1);
+                if (p1runs) add(p1runs, false);
                 if (svc.scripture.reading) {
                     add(`Scripture: ${svc.scripture.reading}`, false);
                     if (svc.scripture.text) add(`Text: ${svc.scripture.text}`, false);
                 }
-                const p2str = psalterBulletinStr(svc.p2);
-                if (p2str) add(p2str, false);
+                const p2runs = psalterBulletinRuns(svc.p2);
+                if (p2runs) add(p2runs, false);
                 if (svc.apostlesCreed) add("Apostles' Creed", false);
                 add('Pastoral Prayer', false);
-                const p3str = psalterBulletinStr(svc.p3);
-                if (p3str) add(p3str, false);
+                const p3runs = psalterBulletinRuns(svc.p3);
+                if (p3runs) add(p3runs, false);
                 if (svc.sermon.title) add(`Sermon: ${svc.sermon.title}`, true);
                 add('Prayer', false);
-                const p4str = psalterBulletinStr(svc.p4);
-                if (p4str) add(p4str, false);
+                const p4runs = psalterBulletinRuns(svc.p4);
+                if (p4runs) add(p4runs, false);
                 add('Benediction', false);
                 if (svc.dox.no) {
                     const vl   = formatVersesLabel(svc.dox.verses);
                     const tune = svc.dox.tune ? ` (${svc.dox.tune})` : '';
-                    add(`Doxology \u2013 ${svc.dox.no}${vl ? ':' + vl : ''}${tune}`, true);
+                    add(`Doxology \u2013 ${svc.dox.no}${vl ? ':' + vl : ''}${tune}`, false);
                 }
             } else {
                 add('Votum & Salutation', false);
-                const p1str = psalterBulletinStr(svc.p1);
-                if (p1str) add(p1str, false);
+                const p1runs = psalterBulletinRuns(svc.p1);
+                if (p1runs) add(p1runs, false);
                 if (svc.readingOfLaw) add('Reading of the Law', false);
-                const p2str = psalterBulletinStr(svc.p2);
-                if (p2str) add(p2str, false);
-                if (svc.scripture.reading) add(`Scripture: ${svc.scripture.reading}`, false);
+                const p2runs = psalterBulletinRuns(svc.p2);
+                if (p2runs) add(p2runs, false);
+                if (svc.scripture.reading) {
+                    add(`Scripture: ${svc.scripture.reading}`, false);
+                    if (svc.scripture.text) add(`Text: ${svc.scripture.text}`, false);
+                }
                 add('Pastoral Prayer', false);
-                const p3str = psalterBulletinStr(svc.p3);
-                if (p3str) add(p3str, false);
+                const p3runs = psalterBulletinRuns(svc.p3);
+                if (p3runs) add(p3runs, false);
                 if (svc.sermon.title) add(`Sermon: ${svc.sermon.title}`, true);
                 add('Prayer of Thanksgiving', false);
                 if (svc.lordSupper) add("Lord's Supper Form \u2013 Part 1", false);
-                const p4str = psalterBulletinStr(svc.p4);
-                if (p4str) add(p4str, false);
+                const p4runs = psalterBulletinRuns(svc.p4);
+                if (p4runs) add(p4runs, false);
                 add('Benediction', false);
                 if (svc.dox.no) {
                     const vl   = formatVersesLabel(svc.dox.verses);
                     const tune = svc.dox.tune ? ` (${svc.dox.tune})` : '';
-                    add(`Doxology \u2013 ${svc.dox.no}${vl ? ':' + vl : ''}${tune}`, true);
+                    add(`Doxology \u2013 ${svc.dox.no}${vl ? ':' + vl : ''}${tune}`, false);
                 }
             }
 
@@ -906,7 +942,7 @@ https://github.com/Arrow-programming
                 slide.addText(headerText, {
                     x: 0.5, y: 0.12, w: 9, h: 0.28,
                     align: 'center', color: GRAY,
-                    fontSize: 9, fontFace: 'Calibri', bold: false
+                    fontSize: 18, fontFace: 'Calibri', bold: false
                 });
 
                 const runs = [];
@@ -926,11 +962,7 @@ https://github.com/Arrow-programming
                     });
                 });
 
-                const totalLines = group.reduce((sum, vi) => {
-                    const v = psalter.verses[vi - 1];
-                    return sum + (v ? v.lyrics.split('\n').length : 0);
-                }, 0) + (group.length - 1);
-                const fontSize = totalLines > 12 ? 14 : totalLines > 8 ? 15 : 17;
+                const fontSize = 30;
 
                 slide.addText(runs, {
                     x: 0.6, y: 0.5, w: 8.8, h: 5.0,
@@ -965,34 +997,35 @@ https://github.com/Arrow-programming
             const slide = pres.addSlide();
             slide.background = { color: BG };
 
-            slide.addText("Apostles' Creed", {
-                x: 0.5, y: 0.18, w: 9, h: 0.35,
-                align: 'center', color: GRAY, fontSize: 10, fontFace: 'Calibri'
+            slide.addText("Apostles’ Creed", {
+                x: 0.5, y: 0.12, w: 9, h: 0.35,
+                align: 'center', color: GRAY, fontSize: 18, fontFace: 'Calibri', bold: false
             });
 
-            const creedItems = [
-                'I believe in God the Father, Almighty, Maker of heaven and earth;',
-                'And in Jesus Christ, His only begotten Son, our Lord;',
-                'Who was conceived by the Holy Ghost, born of the Virgin Mary;',
-                'Suffered under Pontius Pilate; was crucified, dead and buried; He descended into hell;',
-                'The third day He rose again from the dead;',
-                'He ascended into heaven, and sitteth at the right hand of God the Father Almighty;',
-                'From thence He shall come to judge the quick and the dead;',
-                'I believe in the Holy Ghost;',
-                'I believe an holy catholic church; the communion of saints;',
-                'The forgiveness of sins;',
-                'The resurrection of the body;',
-                'And the life everlasting. Amen.'
+            const creedLines = [
+                { label: 'I.', text: 'I believe in God the Father, Almighty, Creator of heaven and earth;' },
+                { label: 'II.', text: 'And in Jesus Christ, His only begotten Son, our Lord;' },
+                { label: 'III.', text: 'Who was conceived by the Holy Spirit, born of the Virgin Mary;' },
+                { label: 'IV.', text: 'Suffered under Pontius Pilate; was crucified, dead and buried;' },
+                { label: '', text: 'He descended into hell;' },
+                { label: 'V.', text: 'The third day He rose again from the dead;' },
+                { label: 'VI.', text: 'He ascended into heaven, and sits at the right hand of God the Father Almighty;' },
+                { label: 'VII.', text: 'From there He shall come to judge the living and the dead;' },
+                { label: 'VIII.', text: 'I believe in the Holy Spirit;' },
+                { label: 'IX.', text: 'I believe an holy catholic church; the communion of saints;' },
+                { label: 'X.', text: 'The forgiveness of sins;' },
+                { label: 'XI.', text: 'The resurrection of the body;' },
+                { label: 'XII.', text: 'And the life everlasting. Amen.' }
             ];
 
-            const runs = creedItems.map((item, idx) => [
-                { text: `${toRoman(idx + 1)}.\t`, options: { bold: false } },
-                { text: item,                      options: { bold: false, breakLine: true } }
-            ]).flat();
+            const runs = creedLines.flatMap((line) => [
+                line.label ? { text: `${line.label}\t`, options: { bold: false } } : { text: '', options: { bold: false } },
+                { text: line.text, options: { bold: false, breakLine: true } }
+            ]);
 
             slide.addText(runs, {
-                x: 0.5, y: 0.6, w: 9, h: 4.9,
-                color: FG, fontFace: 'Calibri', fontSize: 10,
+                x: 0.6, y: 0.55, w: 8.8, h: 4.8,
+                color: FG, fontFace: 'Calibri', fontSize: 15,
                 valign: 'top', align: 'left', lineSpacingMultiple: 1.2
             });
         }
@@ -1058,7 +1091,7 @@ https://github.com/Arrow-programming
                 readingOfLaw: isAM && document.getElementById('readingOfLaw').checked,
                 scripture: {
                     reading: document.getElementById('sc_reading').value.trim(),
-                    text:    isAM ? '' : document.getElementById('sc_text').value.trim()
+                    text:    document.getElementById('sc_text').value.trim()
                 },
                 p2: {
                     no:     document.getElementById('p2_no').value.trim(),
